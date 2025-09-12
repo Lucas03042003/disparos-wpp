@@ -7,7 +7,7 @@ export const connectionStatusEnum = pgEnum("connection_status", ["open", "close"
 // Better Auth
 
 export const userTable = pgTable("user", {
-  id: uuid("id").primaryKey(),
+  id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
@@ -19,11 +19,11 @@ export const userTable = pgTable("user", {
     .notNull(),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
-  status: statusEnum("status").notNull().default("inativo")
+  status: statusEnum("status").notNull().default("ativo")
 });
 
 export const sessionTable = pgTable("session", {
-  id: uuid("id").primaryKey(),
+  id: text("id").primaryKey(),
   expiresAt: timestamp("expires_at").notNull(),
   token: text("token").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -32,16 +32,16 @@ export const sessionTable = pgTable("session", {
     .notNull(),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
-  userId: uuid("user_id")
+  userId: text("user_id")
     .notNull()
     .references(() => userTable.id, { onDelete: "cascade" }),
 });
 
 export const accountTable = pgTable("account", {
-  id: uuid("id").primaryKey(),
+  id: text("id").primaryKey(),
   accountId: text("account_id").notNull(),
   providerId: text("provider_id").notNull(),
-  userId: uuid("user_id")
+  userId: text("user_id")
     .notNull()
     .references(() => userTable.id, { onDelete: "cascade" }),
   accessToken: text("access_token"),
@@ -58,7 +58,7 @@ export const accountTable = pgTable("account", {
 });
 
 export const verificationTable = pgTable("verification", {
-  id: uuid("id").primaryKey(),
+  id: text("id").primaryKey(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
@@ -96,7 +96,7 @@ export const userRelations = relations(userTable, ({ many }) => ({
 // Flux - Os fluxos do n8n
 export const fluxesTable = pgTable("fluxes", {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id").notNull().references(() => userTable.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => userTable.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
     message: text("message"),
     documentURL: text("document_url"),
@@ -120,7 +120,7 @@ export const numbersTable = pgTable("numbers", {
     fluxId: uuid("flux_id").references(() => fluxesTable.id, { onDelete: "set null" }), // A conexão do evolution-api pode estar em até um fluxo
     // Mantem-se as informações do evolution-api para que possamos criar um rotina de deletar instâncias em desuso
     // Só após deletar a instância em desuso no evolution-api poderemos apagar esse número do banco de dados
-    userId: uuid("user_id").references(() => userTable.id, { onDelete: "set null" }),
+    userId: text("user_id").references(() => userTable.id, { onDelete: "set null" }),
     remoteJid: text("remote_jid").notNull(), // Número no evolution-api
     instanceName: text("instance_name").notNull(), // Nome da instância no evolution-api
     token: text().notNull(), // token da evolution-api

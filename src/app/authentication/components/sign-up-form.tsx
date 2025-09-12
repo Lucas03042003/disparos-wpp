@@ -12,6 +12,8 @@ import { PasswordInput } from "@/components/common/password-input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { authClient } from "@/lib/auth-client";
+import { toast } from "sonner";
 
 const formSchema = z
   .object({
@@ -30,6 +32,7 @@ type FormValues = z.infer<typeof formSchema>;
 export const SignUpForm = () => {
   
   const router = useRouter();
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -40,8 +43,30 @@ export const SignUpForm = () => {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
+  async function onSubmit(values: FormValues) {
+    await authClient.signUp.email({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+
+        fetchOptions: {
+          onSuccess: () => {
+            router.push("/");
+            toast.success("Conta criada com sucesso!");
+          },
+          onError: (error) => {
+            if (error.error.message.includes("User already exists.")) {
+              toast.error("E-mail já cadastrado.");
+              return form.setError("email", {
+                message: "E-mail já cadastrado.",
+              });
+            }
+            toast.error(error.error.message);
+          },
+        }
+
+    });
+
   };
 
   return (
