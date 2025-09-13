@@ -9,19 +9,21 @@ export const Authentication = async () => {
 
       <Header/>
 
-      <div className="flex w-full max-w-sm flex-col gap-6 p-5">
-        <Tabs defaultValue="SignIn">
-          <TabsList>
-            <TabsTrigger value="SignIn">Sign In</TabsTrigger>
-            <TabsTrigger value="SignUp">Sign Up</TabsTrigger>
-          </TabsList>
-          <TabsContent value="SignIn">
-              <SignInForm />
-          </TabsContent>
-          <TabsContent value="SignUp">
-              <SignUpForm />
-          </TabsContent>
-        </Tabs>
+      <div className="flex w-full items-center justify-center">
+        <div className="flex w-full max-w-sm flex-col p-5">
+          <Tabs defaultValue="SignIn">
+        <TabsList>
+          <TabsTrigger value="SignIn">Entrar</TabsTrigger>
+          <TabsTrigger value="SignUp">Criar Conta</TabsTrigger>
+        </TabsList>
+        <TabsContent value="SignIn">
+            <SignInForm />
+        </TabsContent>
+        <TabsContent value="SignUp">
+            <SignUpForm />
+        </TabsContent>
+          </Tabs>
+        </div>
       </div>
   
   </>
