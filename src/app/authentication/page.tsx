@@ -1,14 +1,20 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SignInForm } from "./components/sign-in-form" 
 import { SignUpForm } from "./components/sign-up-form"
+import { Header } from "@/components/common/header"
 
 export const Authentication = async () => {
   return (
-    <div className="flex w-full max-w-sm flex-col gap-6 p-5">
-      <Tabs defaultValue="SignIn">
+  <>
+
+      <Header/>
+
+      <div className="flex w-full items-center justify-center">
+        <div className="flex w-full max-w-sm flex-col p-5">
+          <Tabs defaultValue="SignIn">
         <TabsList>
-          <TabsTrigger value="SignIn">Sign In</TabsTrigger>
-          <TabsTrigger value="SignUp">Sign Up</TabsTrigger>
+          <TabsTrigger value="SignIn">Entrar</TabsTrigger>
+          <TabsTrigger value="SignUp">Criar Conta</TabsTrigger>
         </TabsList>
         <TabsContent value="SignIn">
             <SignInForm />
@@ -16,8 +22,11 @@ export const Authentication = async () => {
         <TabsContent value="SignUp">
             <SignUpForm />
         </TabsContent>
-      </Tabs>
-    </div>
+          </Tabs>
+        </div>
+      </div>
+  
+  </>
   )
 }
 

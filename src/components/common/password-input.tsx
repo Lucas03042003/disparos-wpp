@@ -1,12 +1,15 @@
 import React, { useState } from "react"
 import { Eye, EyeOff } from "lucide-react"
 
+import { Input } from "../ui/input"
+import { Button } from "../ui/button"
+
 export function PasswordInput({ field, ...props } : any) {
   const [show, setShow] = useState(false)
 
   return (
     <div style={{ position: "relative", width: "100%" }}>
-      <input
+      <Input
         {...field}
         {...props}
         type={show ? "text" : "password"}
@@ -22,7 +25,7 @@ export function PasswordInput({ field, ...props } : any) {
         autoComplete="new-password"
       />
 
-      <button
+      <Button
         type="button"
         onClick={() => setShow((prev) => !prev)}
         style={{
@@ -43,7 +46,7 @@ export function PasswordInput({ field, ...props } : any) {
         aria-label={show ? "Ocultar senha" : "Exibir senha"}
       >
         {show ? <EyeOff size={20} /> : <Eye size={20} />}
-      </button>
+      </Button>
     </div>
   )
 }

@@ -52,8 +52,8 @@
   --secondary: hsl(210 40% 96%);              /* Neutro claro (cards, fundo sutil) */
   --secondary-foreground: hsl(222 47% 11%);   /* Para contraste no secundário */
 
-  --accent: hsl(97 92% 66%);                  /* Verde lima vibrante */
-  --accent-foreground: hsl(158 60% 52%);      /* Texto verde sobre lima */
+  --accent: hsl(91, 0%, 95%);                  /* Verde lima vibrante */
+  --accent-foreground: hsl(222 47% 11%);      /* Texto verde sobre lima */
 
   --destructive: hsl(0 71% 51%);              /* Vermelho */
   --destructive-foreground: #fff;             /* Texto branco sobre erro */
