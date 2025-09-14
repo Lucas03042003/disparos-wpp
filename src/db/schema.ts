@@ -22,6 +22,17 @@ export const userTable = pgTable("user", {
   status: statusEnum("status").notNull().default("ativo")
 });
 
+export const userRelations = relations(userTable, ({ one, many }) => ({
+    session: many(sessionTable),
+    account: many(accountTable),
+    fluxes: many(fluxesTable),
+    numbers: many(numbersTable),
+    metaData: one(metaDataUsersTable, {
+      fields: [userTable.id],
+      references: [metaDataUsersTable.userId],
+    }),
+}));
+
 export const sessionTable = pgTable("session", {
   id: text("id").primaryKey(),
   expiresAt: timestamp("expires_at").notNull(),
@@ -36,6 +47,13 @@ export const sessionTable = pgTable("session", {
     .notNull()
     .references(() => userTable.id, { onDelete: "cascade" }),
 });
+
+export const sessionRelations = relations(sessionTable, ({ one }) => ({
+    user: one(userTable, {
+        fields: [sessionTable.userId],
+        references: [userTable.id]
+    }),
+}));
 
 export const accountTable = pgTable("account", {
   id: text("id").primaryKey(),
@@ -57,6 +75,13 @@ export const accountTable = pgTable("account", {
     .notNull(),
 });
 
+export const accountRelations = relations(accountTable, ({ one }) => ({
+    user: one(userTable, {
+        fields: [accountTable.userId],
+        references: [userTable.id]
+    }),
+}));
+
 export const verificationTable = pgTable("verification", {
   id: text("id").primaryKey(),
   identifier: text("identifier").notNull(),
@@ -73,25 +98,6 @@ export const verificationTable = pgTable("verification", {
 //  
 // My DATABASE
 //
-
-// // User
-// export const userTable = pgTable("users", {
-//     id: uuid("id").primaryKey().defaultRandom(),
-//     name: varchar("name", { length: 255 }).notNull(),
-//     email: varchar("email", { length: 255 }).notNull().unique(),
-//     password: varchar("password", { length: 255 }).notNull(),
-//     stripeCustomerId: text("stripe_customer_id"),
-//     stripeSubscriptionId: text("stripe_subscription_id"),
-//     status: statusEnum("status").notNull().default("inativo"),
-//     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-//     lastAccess: timestamp("last_access", { withTimezone: true }),
-//     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-// });
-
-export const userRelations = relations(userTable, ({ many }) => ({
-    fluxes: many(fluxesTable),
-    numbers: many(numbersTable)
-}));
 
 // Flux - Os fluxos do n8n
 export const fluxesTable = pgTable("fluxes", {
@@ -119,7 +125,7 @@ export const numbersTable = pgTable("numbers", {
     id: uuid().primaryKey().defaultRandom(),
     fluxId: uuid("flux_id").references(() => fluxesTable.id, { onDelete: "set null" }), // A conexão do evolution-api pode estar em até um fluxo
     // Mantem-se as informações do evolution-api para que possamos criar um rotina de deletar instâncias em desuso
-    // Só após deletar a instância em desuso no evolution-api poderemos apagar esse número do banco de dados
+    // Só após deletar a instância em desuso no evolution-api poderemos apagar esse número do banco de data
     userId: text("user_id").references(() => userTable.id, { onDelete: "set null" }),
     remoteJid: text("remote_jid").notNull(), // Número no evolution-api
     instanceName: text("instance_name").notNull(), // Nome da instância no evolution-api
@@ -157,6 +163,24 @@ export const contactsRelations = relations(contactsTable, ({ one }) => ({
     flux: one(fluxesTable, {
         fields: [contactsTable.fluxId],
         references: [fluxesTable.id]
+    })
+}));
+
+export const metaDataUsersTable = pgTable("metaData", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => userTable.id, { onDelete: "cascade" }),
+  activeNumbers: integer("active_numbers").default(0),
+  activeFluxes: integer("active_fluxes").default(0),
+  successfulContacts: integer("successful_contacts").default(0),
+  unsuccessfulContacts: integer("unsuccessful_contacts").default(0),
+  messagesSentToday: integer("messages_sent_today").default(0),
+  totalContacts: integer("total_contacts").default(0)
+});
+
+export const metaDataUsersRelations = relations(metaDataUsersTable, ({ one }) => ({
+    user: one(userTable, {
+        fields: [metaDataUsersTable.userId],
+        references: [userTable.id]
     })
 }));
 
