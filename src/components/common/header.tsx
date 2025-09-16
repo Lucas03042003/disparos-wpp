@@ -1,7 +1,6 @@
 "use client";
 
 import { LogInIcon, LogOutIcon, MenuIcon } from "lucide-react";
-import Image from "next/image";
 import Logo from "./logo";
 import Link from "next/link";
 
@@ -30,7 +29,7 @@ export const Header = () => {
   };
 
   return (
-    <header className="flex items-center justify-between p-5">
+    <header className="ml-10 flex items-center justify-between p-5">
       <Link href="/">
         {/* <Image src="/logo_temp.svg" alt="WhatsApp Sender" width={100} height={26.14} /> */}
         <Logo />
