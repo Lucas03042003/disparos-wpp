@@ -1,16 +1,16 @@
 import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { Zap, Phone, Calendar, MoreHorizontal } from "lucide-react"
+import { Zap, TextAlignStart, Calendar, MoreHorizontal } from "lucide-react"
 import { useState } from "react"
 
 type FluxItemProps = {
   title: string
-  phone: string
+  message: string | null
   schedule: string
   active: boolean
 }
 
-export function FluxItem({ title, phone, schedule, active }: FluxItemProps) {
+export function FluxItem({ title, message, schedule, active }: FluxItemProps) {
   const [enabled, setEnabled] = useState(active)
 
   return (
@@ -21,11 +21,11 @@ export function FluxItem({ title, phone, schedule, active }: FluxItemProps) {
           <Zap className="h-5 w-5" />
         </div>
         <div>
-            
+
           <h3 className="font-medium text-foreground">{title}</h3>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Phone className="h-4 w-4" /> {phone}
+              <TextAlignStart className="h-4 w-4" /> {message? (message!.slice(0, 40)) : ("Esse fluxo não possui um texto")}...
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="h-4 w-4" /> {schedule}
