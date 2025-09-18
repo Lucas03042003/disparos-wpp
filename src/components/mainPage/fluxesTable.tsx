@@ -19,7 +19,7 @@ type FluxesItems = {
 
 const FluxesTable = () => {
   const { data: session } = authClient.useSession();
-  const [fluxes, setFluxes] = useState<any>(null);
+  const [fluxes, setFluxes] = useState<FluxesItems[] | null>(null);
 
   useEffect(() => {
     if (!session?.user?.id) return; // Só busca se o id existir
