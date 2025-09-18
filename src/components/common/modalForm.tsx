@@ -1,0 +1,109 @@
+"use client";
+
+import React, { useEffect, useRef } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+import { Button } from "@/components/ui/button";
+import {Form,FormControl,FormField,FormItem,FormLabel,FormMessage} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: "O nome deve ter mais de dois dígitos.",
+  }),
+});
+
+export default function ModalForm({ state, onClose, description, action }: 
+  { state: boolean, onClose: () => void, description: string, action: (name:string) => void }) {
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+    },
+  });
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (state) {
+      document.body.style.overflow = "hidden";
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    }
+  }, [state]);
+
+  useEffect(() => {
+    if (!state) return;
+    function esc(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [state, onClose]);
+
+  // AO ENVIAR O FORMULÁRIO
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    action(values.name);
+  }
+
+
+  if (!state) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+      aria-modal="true"
+      role="dialog"
+    >
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-all"
+        onClick={onClose}
+      />
+      <div
+        className="relative z-10 bg-white rounded-lg shadow-lg p-8 min-w-[320px] w-full max-w-md"
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          className="absolute top-3 right-4 text-2xl text-gray-400 hover:text-gray-600"
+          onClick={onClose}
+          aria-label="Fechar modal"
+          type="button"
+        >
+          ×
+        </button>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome da instância</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={description}
+                      {...field}
+                      ref={inputRef}
+                      id="modal-nome-da-instancia"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit">Continuar</Button>
+          </form>
+        </Form>
+      </div>
+    </div>
+  );
+}

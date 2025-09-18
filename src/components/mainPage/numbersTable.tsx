@@ -21,7 +21,7 @@ type NumberItems = {
 const NumbersTable = () => {
     
   const { data: session } = authClient.useSession();
-  const [numbers, setNumbers] = useState<any>(null);
+  const [numbers, setNumbers] = useState<string | null>(null);
 
   useEffect(() => {
 
