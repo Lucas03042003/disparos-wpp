@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import NumbersTable from "./numbersTable"
 import FluxesTable from "./fluxesTable"
 import { useState } from "react";
-import ModalForm from "../common/modalForm";
+import ModalForm from "../modal/modalForm";
 
 export default function TablesAndControllers() {
 
