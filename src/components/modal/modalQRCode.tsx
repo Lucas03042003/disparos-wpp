@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Loading from '../common/loading';
 
 const ModalQRCode = ({name}:{name: string}) => {
@@ -8,42 +8,39 @@ const ModalQRCode = ({name}:{name: string}) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  async function fetchQRCodeInstance() {
+    try {
+      
+      const response = await fetch('/api/evolution-api/criar-instancia', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          {"instanceName":name}
+        ),
+      });
 
-    async function fetchQRCodeInstance() {
-      try {
-        
-        const response = await fetch('/api/evolution-api/criar-instancia', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(
-            {"instanceName":name}
-          ),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Erro ao criar instância');
-        }
-
-        const data = await response.json();
-
-        setQrCodeData(data.qrcode.base64);
-        console.log(data)
-        
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setTimeout(() => {
-          setLoading(false);
-        }, 5000);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao criar instância');
       }
-    }
 
-    fetchQRCodeInstance();
-  }, []);
+      const data = await response.json();
+
+      setQrCodeData(data.qrcode.base64);
+      console.log(data)
+      
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setTimeout(() => {
+        setLoading(false);
+      }, 5000);
+    }
+  }
+
+  fetchQRCodeInstance();
 
   if (loading) {
     return <Loading></Loading>;
