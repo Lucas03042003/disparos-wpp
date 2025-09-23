@@ -3,14 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
-  // Sua Evolution API URL e API KEY
-  const EVOLUTION_API_URL = "https://evolution-api-production-f1ec.up.railway.app/instance/create";
-  const API_KEY = "Lucas@2003"; // Recomendado usar variável de ambiente
-
-  // Importante: NUNCA exponha a API_KEY no código do client!
+  
+  const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL as string;
+  const API_KEY = process.env.API_KEY as string;
 
   try {
-    // Opcional: Receber dados do body, mas aqui usamos nome fixo
+    
     const { instanceName } = await req.json();
 
     const payload = {
