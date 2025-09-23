@@ -55,7 +55,7 @@ const NumbersTable = () => {
                     {numbers && numbers.length > 0 ? (
                       numbers.map((item: NumberItems) => (
                         <tr key={item.id} className="border-t">
-                          <td className="px-6 py-4">{item.instanceName}</td>
+                          <td className="px-6 py-4">{item.instanceName.split(" : ").at(1)}</td>
                           <td className="px-6 py-4">{String(item.createdAt)}</td>
                           <td className="px-6 py-4">
                             {item.connectionStatus === "close" ? (
