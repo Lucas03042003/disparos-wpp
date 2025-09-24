@@ -22,6 +22,7 @@ const NumbersTable = () => {
     
   const { data: session } = authClient.useSession();
   const [numbers, setNumbers] = useState<NumberItems[] | null>(null);
+    const [refreshTrigger, setRefreshTrigger] = useState(0); 
 
   useEffect(() => {
 
@@ -30,7 +31,20 @@ const NumbersTable = () => {
       fetch("/api/db/getNumbers?UserId=" + session.user.id)
         .then((res) => res.json())
         .then(setNumbers);
-    }, [session?.user?.id]);
+    }, [session?.user?.id, refreshTrigger]);
+
+    
+  useEffect(() => {
+    const handleRefreshEvent = () => {
+      setRefreshTrigger(prev => prev + 1);
+    };
+  
+    window.addEventListener('refreshNumbers', handleRefreshEvent);
+    
+    return () => {
+      window.removeEventListener('refreshNumbers', handleRefreshEvent);
+    };
+  }, []);
 
     return ( 
           <TabsContent value="gerenciar" className="mt-6 space-y-4">

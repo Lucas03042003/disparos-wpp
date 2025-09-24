@@ -41,8 +41,6 @@ const ModalQRCode: React.FC<ModalQRCodeProps> = ({ name }) => {
         }),
       });
 
-      console.log('📡 Response status:', response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Erro ao criar instância');
@@ -66,9 +64,7 @@ const ModalQRCode: React.FC<ModalQRCodeProps> = ({ name }) => {
         });
 
         if (dbResponse.ok) {
-          console.log('✅ Salvo no banco com sucesso');
-        } else {
-          console.error('❌ Erro ao salvar no banco');
+          window.dispatchEvent(new CustomEvent('refreshNumbers'));
         }
       }
 
@@ -85,7 +81,6 @@ const ModalQRCode: React.FC<ModalQRCodeProps> = ({ name }) => {
 
   useEffect(() => {
     if (session?.user.id && !hasExecuted.current) {
-      console.log('🎯 Iniciando processo...');
       fetchQRCodeInstance();
     }
 
