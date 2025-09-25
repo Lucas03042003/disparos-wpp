@@ -130,7 +130,7 @@ export const numbersTable = pgTable("numbers", {
     remoteJid: text("remote_jid"), // Número no evolution-api
     instanceName: text("instance_name").notNull().unique(), // Nome da instância no evolution-api
     token: text().notNull().unique(), // token da evolution-api
-    connectionStatus: connectionStatusEnum("connection_status").notNull().default("open"), // Status da conexão do whatsapp com o evolution-api
+    connectionStatus: connectionStatusEnum("connection_status").notNull().default("close"), // Status da conexão do whatsapp com o evolution-api
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

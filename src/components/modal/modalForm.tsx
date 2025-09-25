@@ -1,3 +1,6 @@
+// Esse objeto atua como um orquestrador
+// A partir dele que os usuário terá acesso às demais funcionalidades
+
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -8,7 +11,11 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {Form,FormControl,FormField,FormItem,FormLabel,FormMessage} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import ModalQRCode from "./modalQRCode";
+import ModalQRCode from "./modalNewQRCode";
+
+import { v4 as uuidv4 } from 'uuid';
+import updateNumbers from "@/functions/updateNumbers";
+import { authClient } from "@/lib/auth-client";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -16,11 +23,15 @@ const formSchema = z.object({
   }),
 });
 
-export default function ModalForm({ state, onClose, description, action }: 
-  { state: boolean, onClose: () => void, description: string, action: (name:string) => void }) {
+export default function ModalForm({ state, onClose, description }: 
+  { state: boolean, onClose: () => void, description: string }) {
 
   const [formStep, setFormStep] = useState<number>(0);
   const [name, setName] = useState<string>("");
+  const [token] = useState(() => uuidv4().toUpperCase());
+
+  const { data: session } = authClient.useSession();
+  const userId = session?.user.id;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -58,7 +69,6 @@ export default function ModalForm({ state, onClose, description, action }:
   function onSubmit(values: z.infer<typeof formSchema>) {
     setFormStep(1);
     setName(values.name);
-    action(values.name);
   }
 
   if (!state) return null;
@@ -79,7 +89,13 @@ export default function ModalForm({ state, onClose, description, action }:
       >
         <button
           className="absolute top-3 right-4 text-2xl text-gray-400 hover:text-gray-600"
-          onClick={onClose}
+          onClick={() => {
+            onClose();
+            if (description.includes('whatsapp') && formStep !== 0) {
+              const instanceName = name;
+              updateNumbers({ instanceName, token, userId });
+            }
+          }}
           aria-label="Fechar modal"
           type="button"
         >
@@ -111,7 +127,7 @@ export default function ModalForm({ state, onClose, description, action }:
               <Button type="submit">Continuar</Button>
             </form>
           </Form>):(
-            <ModalQRCode name={name}/>
+            <ModalQRCode name={name} token={token} userId={userId}/>
           )
         }
 

@@ -24,7 +24,6 @@ export default function TablesAndControllers() {
             ? "Dê um apelido a esse whatsapp." 
             : "Dê um nome a esse fluxo."
         } 
-        action={(nome:string) => {console.log(nome)}}
       />
 
       <div className="space-y-6 gap-6 p-5 ml-20 mr-20 mt-5">

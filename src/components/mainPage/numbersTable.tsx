@@ -46,7 +46,7 @@ const NumbersTable = () => {
     };
   }, []);
 
-    return ( 
+  return ( 
           <TabsContent value="gerenciar" className="mt-6 space-y-4">
             <div>
               <h2 className="text-xl font-bold text-foreground">Números do WhatsApp</h2>
@@ -72,7 +72,7 @@ const NumbersTable = () => {
                           <td className="px-6 py-4">{item.instanceName.split(" : ").at(1)}</td>
                           <td className="px-6 py-4">{String(item.createdAt)}</td>
                           <td className="px-6 py-4">
-                            {item.connectionStatus === "close" ? (
+                            {item.connectionStatus === "open" ? (
                               <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
                                 <CheckCircle2 className="w-3 h-3" />
                                 Ativo
@@ -100,7 +100,7 @@ const NumbersTable = () => {
               </table>
             </Card>
           </TabsContent>
-     );
-}
+  );
+};
  
 export default NumbersTable;

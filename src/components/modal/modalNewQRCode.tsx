@@ -2,24 +2,19 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Loading from '../common/loading';
-import { authClient } from "@/lib/auth-client";
-import { v4 as uuidv4 } from 'uuid';
 
 interface ModalQRCodeProps {
-  name: string;
-}
+  name: string,
+  token: string,
+  userId: string|undefined|null
+};
 
-const ModalQRCode: React.FC<ModalQRCodeProps> = ({ name }) => {
+const ModalQRCode: React.FC<ModalQRCodeProps> = ({ name, token, userId }) => {
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
-  const [token] = useState(() => uuidv4().toUpperCase());
 
   const hasExecuted = useRef(false);
-
-  const { data: session } = authClient.useSession();
-  const userId = session?.user.id;
 
   async function fetchQRCodeInstance() {
     if (hasExecuted.current) { // verifica se a função já roudou antes ou não
@@ -80,14 +75,14 @@ const ModalQRCode: React.FC<ModalQRCodeProps> = ({ name }) => {
   }
 
   useEffect(() => {
-    if (session?.user.id && !hasExecuted.current) {
+    if (userId && !hasExecuted.current) {
       fetchQRCodeInstance();
     }
 
 
     return () => {
     };
-  }, [session?.user.id]);
+  }, [userId]);
 
   if (loading) {
     return <Loading />;
