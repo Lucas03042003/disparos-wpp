@@ -22,7 +22,7 @@ const NumbersTable = () => {
     
   const { data: session } = authClient.useSession();
   const [numbers, setNumbers] = useState<NumberItems[] | null>(null);
-    const [refreshTrigger, setRefreshTrigger] = useState(0); 
+  const [refreshTrigger, setRefreshTrigger] = useState(0); 
 
   useEffect(() => {
 
@@ -60,7 +60,7 @@ const NumbersTable = () => {
                 <thead className="bg-muted text-muted-foreground">
                   <tr>
                     <th className="px-6 py-3 text-left">Campanha</th>
-                    <th className="px-6 py-3 text-left">Data de Criação</th>
+                    <th className="px-6 py-3 text-left">Número Conectado</th>
                     <th className="px-6 py-3 text-left">Status</th>
                     <th className="px-6 py-3 text-left">Ações</th>
                   </tr>
@@ -70,7 +70,7 @@ const NumbersTable = () => {
                       numbers.map((item: NumberItems) => (
                         <tr key={item.id} className="border-t">
                           <td className="px-6 py-4">{item.instanceName.split(" : ").at(1)}</td>
-                          <td className="px-6 py-4">{String(item.createdAt)}</td>
+                          <td className="px-6 py-4">{item.remoteJid? item.remoteJid.split('@')[0]:"Desconectado."}</td>
                           <td className="px-6 py-4">
                             {item.connectionStatus === "open" ? (
                               <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">

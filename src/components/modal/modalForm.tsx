@@ -94,6 +94,7 @@ export default function ModalForm({ state, onClose, description }:
             if (description.includes('whatsapp') && formStep !== 0) {
               const instanceName = name;
               updateNumbers({ instanceName, token, userId });
+              window.dispatchEvent(new CustomEvent('refreshMetaData'));
             }
           }}
           aria-label="Fechar modal"
