@@ -127,10 +127,10 @@ export const numbersTable = pgTable("numbers", {
     // Mantem-se as informações do evolution-api para que possamos criar um rotina de deletar instâncias em desuso
     // Só após deletar a instância em desuso no evolution-api poderemos apagar esse número do banco de data
     userId: text("user_id").references(() => userTable.id, { onDelete: "set null" }),
-    remoteJid: text("remote_jid").notNull(), // Número no evolution-api
-    instanceName: text("instance_name").notNull(), // Nome da instância no evolution-api
-    token: text().notNull(), // token da evolution-api
-    connectionStatus: connectionStatusEnum("connection_status").notNull().default("open"), // Status da conexão do whatsapp com o evolution-api
+    remoteJid: text("remote_jid"), // Número no evolution-api
+    instanceName: text("instance_name").notNull().unique(), // Nome da instância no evolution-api
+    token: text().notNull().unique(), // token da evolution-api
+    connectionStatus: connectionStatusEnum("connection_status").notNull().default("close"), // Status da conexão do whatsapp com o evolution-api
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
