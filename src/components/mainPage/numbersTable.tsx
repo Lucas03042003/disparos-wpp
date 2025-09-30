@@ -4,8 +4,9 @@ import { useEffect, useState, useRef } from "react";
 import { authClient } from "@/lib/auth-client";
 import { TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, CircleOff, Trash2, ScanQrCode } from "lucide-react";
+import { CheckCircle2, CircleOff, Trash2, ScanQrCode, CloudOff } from "lucide-react";
 import { io, Socket } from "socket.io-client";
+import { twMerge } from 'tailwind-merge';
 
 type NumberItems = {
   id: string;
@@ -17,6 +18,25 @@ type NumberItems = {
   connectionStatus: "open" | "close" | "connecting";
   createdAt: Date;
   updatedAt: Date;
+};
+
+const ConnectionButton = ({ status }:{ status: "open" | "close" | "connecting"; }) => {
+  
+  const className="flex items-center gap-2 w-full px-4 py-1 text-sm font-medium hover:bg-green-100 rounded-t-lg justify-left"
+  
+  return (
+    status === "close"
+    ? (<button className={twMerge(className,  "text-green-700")}>
+        <ScanQrCode className="w-4 h-4" />
+        Conectar
+      </button>) : (
+        <button className={className}>
+          <CloudOff className="w-4 h-4" />
+          Desconectar
+        </button>
+      )
+    
+  );
 };
 
 const NumbersTable = () => {
@@ -144,21 +164,18 @@ const NumbersTable = () => {
                       •••
                     </button>
 
-                    {/* Menu suspenso */}
+                    {/* Mmnu suspenso */}
                     {activeMenu === item.id && (
                       <div
                         ref={menuRef} // Conecta o menu à ref do menu
-                        className="absolute top-[calc(100%-40px)] left-5 bg-white border border-gray-200 rounded-lg shadow-lg w-30 z-50"
+                        className="absolute top-[calc(100%-40px)] left-5 bg-white border border-gray-200 rounded-lg shadow-lg w-35 z-50"
                       >
-                        {/* Botão Conectar */}
-                        <button className="flex items-center gap-2 w-full px-4 py-1 text-sm font-medium text-green-700 hover:bg-green-100 rounded-t-lg justify-left">
-                          <ScanQrCode className="w-4 h-4" /> {/* Ícone com tamanho reduzido */}
-                          Conectar
-                        </button>
+                        {/* botão des/conectar */}
+                        <ConnectionButton status={item.connectionStatus} />
                     
-                        {/* Botão Deletar */}
+                        {/* botão deletar */}
                         <button className="flex items-center gap-2 w-full px-4 py-1 text-sm font-medium text-red-600 hover:bg-red-100 rounded-b-lg justify-left">
-                          <Trash2 className="w-4 h-4" /> {/* Ícone com tamanho reduzido */}
+                          <Trash2 className="w-4 h-4" />
                           Deletar
                         </button>
                       </div>
