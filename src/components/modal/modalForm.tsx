@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import ModalQRCode from "./modalNewQRCode";
 
 import { v4 as uuidv4 } from 'uuid';
-import updateNumbers from "@/functions/updateNumbers";
+// import updateNumbers from "@/functions/updateNumbers"; Não é mais utilizado, estou usando web sockets
 import { authClient } from "@/lib/auth-client";
 
 const formSchema = z.object({
@@ -91,11 +91,11 @@ export default function ModalForm({ state, onClose, description }:
           className="absolute top-3 right-4 text-2xl text-gray-400 hover:text-gray-600"
           onClick={() => {
             onClose();
-            if (description.includes('whatsapp') && formStep !== 0) {
-              const instanceName = name;
-              updateNumbers({ instanceName, token, userId });
-              window.dispatchEvent(new CustomEvent('refreshMetaData'));
-            }
+            // if (description.includes('whatsapp') && formStep !== 0) {
+            //   const instanceName = name;
+            //   updateNumbers({ instanceName, token, userId });
+            //   window.dispatchEvent(new CustomEvent('refreshMetaData'));
+            // }
           }}
           aria-label="Fechar modal"
           type="button"

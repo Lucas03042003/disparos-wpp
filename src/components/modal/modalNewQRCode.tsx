@@ -46,7 +46,7 @@ const ModalQRCode: React.FC<ModalQRCodeProps> = ({ name, token, userId }) => {
       setQrCodeData(data.qrcode.base64);
 
       if (data) {
-        const dbResponse = await fetch('/api/db/createNumber', {
+        await fetch('/api/db/createNumber', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -57,11 +57,7 @@ const ModalQRCode: React.FC<ModalQRCodeProps> = ({ name, token, userId }) => {
             "token": `${data.hash}`
           }),
         });
-
-        if (dbResponse.ok) {
-          window.dispatchEvent(new CustomEvent('refreshNumbers'));
-        }
-      }
+      };
 
     } catch (err: any) {
       console.error('Erro:', err);

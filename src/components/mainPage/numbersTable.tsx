@@ -5,6 +5,7 @@ import { authClient } from "@/lib/auth-client";
 import { TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, CircleOff, Trash2, ScanQrCode } from "lucide-react";
+import { io, Socket } from "socket.io-client";
 
 type NumberItems = {
   id: string;
@@ -21,12 +22,35 @@ type NumberItems = {
 const NumbersTable = () => {
   const { data: session } = authClient.useSession();
   const [numbers, setNumbers] = useState<NumberItems[] | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   // Refs para o menu e botão
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
+
+  const socketRef = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    // Conectar ao servidor Socket.IO definido em server.js
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8080", {
+      transports: ["websocket", "polling"],
+      timeout: 20000,
+      query: { userId: session?.user.id }
+    });
+
+    socketRef.current = socket;
+
+    // Escutar atualizações dos números enviadas pelo evento `numbers_event_update`
+    socket.on("numbers_event_update", (payload) => {
+      setNumbers(payload); // Atualize todos os números recebidos
+    });
+
+    // Cleanup ao desmontar o componente
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [session?.user?.id]); // [] garante que useEffect seja executado apenas uma vez
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -34,21 +58,8 @@ const NumbersTable = () => {
     fetch("/api/db/getNumbers?UserId=" + session.user.id)
       .then((res) => res.json())
       .then(setNumbers);
-  }, [session?.user?.id, refreshTrigger]);
-
-  // Atualizar números com evento global
-  useEffect(() => {
-    const handleRefreshEvent = () => {
-      setRefreshTrigger((prev) => prev + 1);
-    };
-
-    window.addEventListener("refreshNumbers", handleRefreshEvent);
-
-    return () => {
-      window.removeEventListener("refreshNumbers", handleRefreshEvent);
-    };
-  }, []);
-
+  }, [session?.user?.id]);
+  
   // Fechar o menu quando for detectado clique fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

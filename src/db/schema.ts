@@ -166,7 +166,7 @@ export const contactsRelations = relations(contactsTable, ({ one }) => ({
     })
 }));
 
-export const metaDataUsersTable = pgTable("metaData", {
+export const metaDataUsersTable = pgTable("metadata", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").references(() => userTable.id, { onDelete: "cascade" }),
   activeNumbers: integer("active_numbers").default(0),
