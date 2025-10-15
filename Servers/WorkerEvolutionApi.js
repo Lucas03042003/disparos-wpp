@@ -25,11 +25,7 @@ async function initializeEvolutionListener() {
 
       try {
         // Obtém todas as mudanças da tabela "Change"
-        const { rows: instanceChanges } = await clientEvol.query(`
-          SELECT C."id" AS change_id, C."operation", I.* 
-          FROM public."Change" C
-          JOIN public."Instance" I ON C."instance_id" = I.id;
-        `);
+        const { rows: instanceChanges } = await clientEvol.query(`SELECT * FROM public."Change";`);
 
         console.log("📝 Mudanças recebidas:", instanceChanges);
 
@@ -46,8 +42,8 @@ async function initializeEvolutionListener() {
               ON CONFLICT DO NOTHING; -- Evita duplicatas
             `;
             params.push(
-              change.name.split(" : ")[0],
-              change.name,
+              change.instance_name.split(" : ")[0],
+              change.instance_name,
               change.token
             );
           } else if (change.operation === "UPDATE") {
@@ -57,9 +53,9 @@ async function initializeEvolutionListener() {
               WHERE instance_name = $3 AND token = $4;
             `;
             params.push(
-              change.connectionStatus,
-              change.ownerJid,
-              change.name,
+              change.new_connection_status,
+              change.owner_jid,
+              change.instance_name,
               change.token
             );
           } else if (change.operation === "DELETE") {
@@ -67,7 +63,7 @@ async function initializeEvolutionListener() {
               DELETE FROM numbers 
               WHERE instance_name = $1 AND token = $2;
             `;
-            params.push(change.name, change.token);
+            params.push(change.instance_name, change.token);
           }
 
           // Executa a query de atualização/inserção/remoção no banco principal
@@ -79,9 +75,9 @@ async function initializeEvolutionListener() {
           // Exclui a linha da tabela "Change" para evitar reprocessamento no futuro
           await clientEvol.query(
             `DELETE FROM public."Change" WHERE id = $1;`,
-            [change.change_id]
+            [change.id]
           );
-          console.log(`🗑️ Mudança com ID ${change.change_id} excluída da tabela "Change"`);
+          console.log(`🗑️ Mudança com ID ${change.id} excluída da tabela "Change"`);
         }
       } catch (err) {
         console.error("❌ Erro ao processar mudanças:", err.message);
