@@ -27,6 +27,21 @@ async function initializePostgreSQLListener() {
     // Manipulador de notificações
     client.on("notification", (msg) => {
       try {
+        // 🔹 Se payload for vazio ou nulo, retorna JSON vazio
+        if (!msg.payload || msg.payload.trim() === "") {
+          console.log(`⚠️ Payload vazio recebido de [${msg.channel}]`);
+
+          io.sockets.sockets.forEach((s) => {
+            if (msg.channel === "numbers_event") {
+              s.emit(`${msg.channel}_update`, []); // array vazio
+            } else if (msg.channel === "metadata_event") {
+              s.emit(`${msg.channel}_update`, {}); // objeto vazio
+            }
+          });
+
+          return; // encerra antes de tentar parsear
+        }
+
         const payload = JSON.parse(msg.payload);
 
         // Mapeando dados para os nomes de colunas esperados no Drizzle
@@ -56,25 +71,26 @@ async function initializePostgreSQLListener() {
         console.log(`📥 Notificação [${msg.channel}]:`, mappedPayload);
 
         // Enviar os dados mapeados para o front-end via Socket.IO
-        io.sockets.sockets.forEach((s) => {
-          if (Array.isArray(mappedPayload)) {
-            // 🔹 numbers_event → array de números
-            io.sockets.sockets.forEach((s) => {
-              const filtered = mappedPayload.filter((item) => String(item.userId) === String(s.userId));
-              if (filtered.length > 0) {
-                s.emit(`${msg.channel}_update`, filtered);
-              }
-            });
-          } else {
-            // 🔹 metadata_event → objeto único
-            io.sockets.sockets.forEach((s) => {
-              if (String(mappedPayload.userId) === String(s.userId)) {
-                s.emit(`${msg.channel}_update`, mappedPayload);
-              }
-            });
-          }
-        });
-
+        if (Array.isArray(mappedPayload)) {
+          // 🔹 numbers_event → array de números
+          io.sockets.sockets.forEach((s) => {
+            const filtered = mappedPayload.filter(
+              (item) => String(item.userId) === String(s.userId)
+            );
+            // sempre envia (mesmo vazio)
+            s.emit(`${msg.channel}_update`, filtered.length > 0 ? filtered : []);
+          });
+        } else {
+          // 🔹 metadata_event → objeto único
+          io.sockets.sockets.forEach((s) => {
+            if (String(mappedPayload.userId) === String(s.userId)) {
+              s.emit(`${msg.channel}_update`, mappedPayload);
+            } else {
+              // se não pertencer ao usuário, envia objeto vazio
+              s.emit(`${msg.channel}_update`, {});
+            }
+          });
+        }
       } catch (error) {
         console.error("❌ Erro ao processar notificação:", error.message);
       }
@@ -93,7 +109,7 @@ app.get("/", (req, res) => {
 io.on("connection", (socket) => {
   const { userId } = socket.handshake.query; // vem do frontend
   console.log(`🔌 Cliente conectado: ${socket.id}, userId: ${userId}`);
-  
+
   // salva o userId na instância do socket
   socket.userId = userId;
 });

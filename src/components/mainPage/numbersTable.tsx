@@ -138,7 +138,7 @@ const NumbersTable = () => {
                 <tr key={item.id} className="border-t relative">
                   <td className="px-6 py-4">{item.instanceName.split(" : ").at(1)}</td>
                   <td className="px-6 py-4">
-                    {item.remoteJid ? item.remoteJid.split("@")[0] : "Desconectado."}
+                    {item.remoteJid ? item.remoteJid.split("@")[0] : ""}
                   </td>
                   <td className="px-6 py-4">
                     {item.connectionStatus === "open" ? (
