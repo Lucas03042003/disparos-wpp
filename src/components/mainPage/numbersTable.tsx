@@ -45,8 +45,33 @@ async function connectInstance(
   }
 };
 
-const ConnectionButton = ({ status, instanceName, onConnect }:
-  { status: "open" | "close" | "connecting"; instanceName: string; onConnect: () => void }) => {
+async function disconnectInstance(instanceName: string) {
+  try {
+    const response = await fetch('/api/evolution-api/desconectar-instancia', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ instanceName }),
+    });
+
+  } catch (error) {
+    console.error("Erro ao desconectar instância:", error);
+  } 
+};
+
+async function deleteInstance(instanceName: string) {
+  try {
+    const response = await fetch('/api/evolution-api/delete-instancia', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ instanceName }),
+    });
+  } catch (error) {
+    console.error("Erro ao deletar instância:", error);
+  }
+};
+
+const ConnectionButton = ({ status, instanceName, onConnect, onDesconnect }:
+  { status: "open" | "close" | "connecting"; instanceName: string; onConnect: () => void, onDesconnect: () => void }) => {
   
   const className="flex items-center gap-2 w-full px-4 py-1 text-sm font-medium hover:bg-green-100 rounded-t-lg justify-left"
   
@@ -56,7 +81,7 @@ const ConnectionButton = ({ status, instanceName, onConnect }:
         <ScanQrCode className="w-4 h-4" />
         Conectar
       </button>) : (
-        <button className={className}>
+        <button className={className} onClick={onDesconnect}>
           <CloudOff className="w-4 h-4" />
           Desconectar
         </button>
@@ -203,10 +228,13 @@ const NumbersTable = ({
                           status={item.connectionStatus}
                           instanceName={item.instanceName}
                           onConnect={() => connectInstance(item.instanceName, setIsModalOpen, setModalStep, setModalQrCode)}
+                          onDesconnect={() => disconnectInstance(item.instanceName)}
                         />
                     
                         {/* botão deletar */}
-                        <button className="flex items-center gap-2 w-full px-4 py-1 text-sm font-medium text-red-600 hover:bg-red-100 rounded-b-lg justify-left">
+                        <button className="flex items-center gap-2 w-full px-4 py-1 text-sm font-medium text-red-600 hover:bg-red-100 rounded-b-lg justify-left"
+                          onClick={() => deleteInstance(item.instanceName)}
+                        >
                           <Trash2 className="w-4 h-4" />
                           Deletar
                         </button>
