@@ -20,13 +20,39 @@ type NumberItems = {
   updatedAt: Date;
 };
 
-const ConnectionButton = ({ status }:{ status: "open" | "close" | "connecting"; }) => {
+async function connectInstance(
+  instanceName: string,
+  setIsModalOpen: () => void,
+  setModalStep: () => void,
+  setModalQrCode: (qr: string) => void
+) {
+  try {
+    const response = await fetch('/api/evolution-api/conectar-instancia', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ instanceName }),
+    });
+
+    const data = await response.json();
+
+    // chamar as callbacks recebidas
+    setModalQrCode(data.base64);
+    setModalStep();
+    setIsModalOpen();
+
+  } catch (error) {
+    console.error("Erro ao conectar instância:", error);
+  }
+};
+
+const ConnectionButton = ({ status, instanceName, onConnect }:
+  { status: "open" | "close" | "connecting"; instanceName: string; onConnect: () => void }) => {
   
   const className="flex items-center gap-2 w-full px-4 py-1 text-sm font-medium hover:bg-green-100 rounded-t-lg justify-left"
   
   return (
-    status === "close"
-    ? (<button className={twMerge(className,  "text-green-700")}>
+    status !== "open"
+    ? (<button className={twMerge(className,  "text-green-700")} onClick={onConnect}>
         <ScanQrCode className="w-4 h-4" />
         Conectar
       </button>) : (
@@ -35,11 +61,18 @@ const ConnectionButton = ({ status }:{ status: "open" | "close" | "connecting"; 
           Desconectar
         </button>
       )
-    
   );
 };
 
-const NumbersTable = () => {
+const NumbersTable = ({
+  setIsModalOpen,
+  setModalStep,
+  setModalQrCode
+}: {
+  setIsModalOpen: () => void;
+  setModalStep: () => void;
+  setModalQrCode: (qr: string) => void;
+}) => {
   const { data: session } = authClient.useSession();
   const [numbers, setNumbers] = useState<NumberItems[] | null>(null);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -51,39 +84,42 @@ const NumbersTable = () => {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    // Conectar ao servidor Socket.IO definido em server.js
+    // Não conecta socket se não houver session
+    if (!session?.user?.id) return;
+
     const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8080", {
       transports: ["websocket", "polling"],
       timeout: 20000,
-      query: { userId: session?.user.id }
+      query: { userId: session.user.id }
     });
 
     socketRef.current = socket;
 
-    // Escutar atualizações dos números enviadas pelo evento `numbers_event_update`
     socket.on("numbers_event_update", (payload) => {
-      setNumbers(payload); // Atualize todos os números recebidos
+      setNumbers(payload);
     });
 
-    // Cleanup ao desmontar o componente
     return () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [session?.user?.id]); // [] garante que useEffect seja executado apenas uma vez
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (!session?.user?.id) return;
 
     fetch("/api/db/getNumbers?UserId=" + session.user.id)
       .then((res) => res.json())
-      .then(setNumbers);
+      .then(setNumbers)
+      .catch((err) => {
+        console.error("Erro ao buscar números:", err);
+        setNumbers([]);
+      });
   }, [session?.user?.id]);
   
   // Fechar o menu quando for detectado clique fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Verifica se o clique aconteceu fora do menu e do botão
       if (
         menuRef.current &&
         !menuRef.current.contains(event.target as Node) &&
@@ -94,23 +130,15 @@ const NumbersTable = () => {
       }
     };
 
-    // Adiciona o evento de clique no documento
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      // Remove o evento ao desmontar
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
   const toggleMenu = (id: string) => {
-    if (activeMenu === id) {
-      // Fecha o menu se já estiver ativo
-      setActiveMenu(null);
-    } else {
-      // Abre o menu
-      setActiveMenu(id);
-    }
+    setActiveMenu(prev => prev === id ? null : id);
   };
 
   return (
@@ -164,14 +192,18 @@ const NumbersTable = () => {
                       •••
                     </button>
 
-                    {/* Mmnu suspenso */}
+                    {/* Menu suspenso */}
                     {activeMenu === item.id && (
                       <div
-                        ref={menuRef} // Conecta o menu à ref do menu
+                        ref={menuRef}
                         className="absolute top-[calc(100%-40px)] left-5 bg-white border border-gray-200 rounded-lg shadow-lg w-35 z-50"
                       >
                         {/* botão des/conectar */}
-                        <ConnectionButton status={item.connectionStatus} />
+                        <ConnectionButton
+                          status={item.connectionStatus}
+                          instanceName={item.instanceName}
+                          onConnect={() => connectInstance(item.instanceName, setIsModalOpen, setModalStep, setModalQrCode)}
+                        />
                     
                         {/* botão deletar */}
                         <button className="flex items-center gap-2 w-full px-4 py-1 text-sm font-medium text-red-600 hover:bg-red-100 rounded-b-lg justify-left">

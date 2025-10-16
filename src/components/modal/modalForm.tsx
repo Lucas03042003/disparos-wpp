@@ -23,10 +23,10 @@ const formSchema = z.object({
   }),
 });
 
-export default function ModalForm({ state, onClose, description }: 
-  { state: boolean, onClose: () => void, description: string }) {
+export default function ModalForm({ state, onClose, description, qrCode, step }: 
+  { state: boolean, onClose: () => void, description: string, qrCode: string, step: number }) {
 
-  const [formStep, setFormStep] = useState<number>(0);
+  const [formStep, setFormStep] = useState<number>(step);
   const [name, setName] = useState<string>("");
   const [token] = useState(() => uuidv4().toUpperCase());
 
@@ -128,7 +128,14 @@ export default function ModalForm({ state, onClose, description }:
               <Button type="submit">Continuar</Button>
             </form>
           </Form>):(
-            <ModalQRCode name={name} token={token} userId={userId}/>
+            (qrCode === "")? (
+              <ModalQRCode name={name} token={token} userId={userId}/>
+            ) : (
+              <div>
+                <h3>Leia o QR-Code abaixo para conectar o whatsapp:</h3>
+                <img src={qrCode} alt="QR Code" className="filter-none" />
+              </div>
+            )
           )
         }
 

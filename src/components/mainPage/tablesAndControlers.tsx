@@ -12,18 +12,26 @@ export default function TablesAndControllers() {
   const [buttonType, setbuttonType] = useState<string>("+ Adicionar Número");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [modalKey, setModalKey] = useState<number>(0); // contador para recriar modal
+  const [qrCode, setQrCode] = useState<string>("");
+  const [step, setStep] = useState<number>(0);
 
   return (
     <>
       <ModalForm 
         key={modalKey} // força recriação sempre que o contador mudar
         state={isModalOpen} 
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false) 
+          setQrCode("")
+          setStep(0)
+        }}
         description={
           buttonType === "+ Adicionar Número" 
             ? "Dê um apelido a esse whatsapp." 
             : "Dê um nome a esse fluxo."
         } 
+        qrCode={qrCode}
+        step = {step}
       />
 
       <div className="space-y-6 gap-6 p-5 ml-20 mr-20 mt-5">
@@ -55,7 +63,7 @@ export default function TablesAndControllers() {
               </Button>
             </div>
 
-            <NumbersTable/>
+            <NumbersTable setIsModalOpen = {() => setIsModalOpen(true)} setModalStep = {() => setStep(1)} setModalQrCode = {(qrCode:string) => setQrCode(qrCode)}/>
             <FluxesTable/>
 
           </Tabs>
