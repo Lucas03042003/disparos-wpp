@@ -4,7 +4,9 @@ import { useEffect, useState, useRef } from "react";
 import { authClient } from "@/lib/auth-client";
 import { TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, CircleOff, Trash2, ScanQrCode } from "lucide-react";
+import { CheckCircle2, CircleOff, Trash2, ScanQrCode, CloudOff } from "lucide-react";
+import { io, Socket } from "socket.io-client";
+import { twMerge } from 'tailwind-merge';
 
 type NumberItems = {
   id: string;
@@ -18,41 +20,131 @@ type NumberItems = {
   updatedAt: Date;
 };
 
-const NumbersTable = () => {
+async function connectInstance(
+  instanceName: string,
+  setIsModalOpen: () => void,
+  setModalStep: () => void,
+  setModalQrCode: (qr: string) => void
+) {
+  try {
+    const response = await fetch('/api/evolution-api/conectar-instancia', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ instanceName }),
+    });
+
+    const data = await response.json();
+
+    // chamar as callbacks recebidas
+    setModalQrCode(data.base64);
+    setModalStep();
+    setIsModalOpen();
+
+  } catch (error) {
+    console.error("Erro ao conectar instância:", error);
+  }
+};
+
+async function disconnectInstance(instanceName: string) {
+  try {
+    const response = await fetch('/api/evolution-api/desconectar-instancia', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ instanceName }),
+    });
+
+  } catch (error) {
+    console.error("Erro ao desconectar instância:", error);
+  } 
+};
+
+async function deleteInstance(instanceName: string) {
+  try {
+    const response = await fetch('/api/evolution-api/delete-instancia', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ instanceName }),
+    });
+  } catch (error) {
+    console.error("Erro ao deletar instância:", error);
+  }
+};
+
+const ConnectionButton = ({ status, instanceName, onConnect, onDesconnect }:
+  { status: "open" | "close" | "connecting"; instanceName: string; onConnect: () => void, onDesconnect: () => void }) => {
+  
+  const className="flex items-center gap-2 w-full px-4 py-1 text-sm font-medium hover:bg-green-100 rounded-t-lg justify-left"
+  
+  return (
+    status !== "open"
+    ? (<button className={twMerge(className,  "text-green-700")} onClick={onConnect}>
+        <ScanQrCode className="w-4 h-4" />
+        Conectar
+      </button>) : (
+        <button className={className} onClick={onDesconnect}>
+          <CloudOff className="w-4 h-4" />
+          Desconectar
+        </button>
+      )
+  );
+};
+
+const NumbersTable = ({
+  setIsModalOpen,
+  setModalStep,
+  setModalQrCode
+}: {
+  setIsModalOpen: () => void;
+  setModalStep: () => void;
+  setModalQrCode: (qr: string) => void;
+}) => {
   const { data: session } = authClient.useSession();
   const [numbers, setNumbers] = useState<NumberItems[] | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   // Refs para o menu e botão
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
+  const socketRef = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    // Não conecta socket se não houver session
+    if (!session?.user?.id) return;
+
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8080", {
+      transports: ["websocket", "polling"],
+      timeout: 20000,
+      query: { userId: session.user.id }
+    });
+
+    socketRef.current = socket;
+
+    socket.on("numbers_event_update", (payload) => {
+      setNumbers(payload);
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [session?.user?.id]);
+
   useEffect(() => {
     if (!session?.user?.id) return;
 
     fetch("/api/db/getNumbers?UserId=" + session.user.id)
       .then((res) => res.json())
-      .then(setNumbers);
-  }, [session?.user?.id, refreshTrigger]);
-
-  // Atualizar números com evento global
-  useEffect(() => {
-    const handleRefreshEvent = () => {
-      setRefreshTrigger((prev) => prev + 1);
-    };
-
-    window.addEventListener("refreshNumbers", handleRefreshEvent);
-
-    return () => {
-      window.removeEventListener("refreshNumbers", handleRefreshEvent);
-    };
-  }, []);
-
+      .then(setNumbers)
+      .catch((err) => {
+        console.error("Erro ao buscar números:", err);
+        setNumbers([]);
+      });
+  }, [session?.user?.id]);
+  
   // Fechar o menu quando for detectado clique fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Verifica se o clique aconteceu fora do menu e do botão
       if (
         menuRef.current &&
         !menuRef.current.contains(event.target as Node) &&
@@ -63,23 +155,15 @@ const NumbersTable = () => {
       }
     };
 
-    // Adiciona o evento de clique no documento
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      // Remove o evento ao desmontar
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
   const toggleMenu = (id: string) => {
-    if (activeMenu === id) {
-      // Fecha o menu se já estiver ativo
-      setActiveMenu(null);
-    } else {
-      // Abre o menu
-      setActiveMenu(id);
-    }
+    setActiveMenu(prev => prev === id ? null : id);
   };
 
   return (
@@ -107,7 +191,7 @@ const NumbersTable = () => {
                 <tr key={item.id} className="border-t relative">
                   <td className="px-6 py-4">{item.instanceName.split(" : ").at(1)}</td>
                   <td className="px-6 py-4">
-                    {item.remoteJid ? item.remoteJid.split("@")[0] : "Desconectado."}
+                    {item.remoteJid ? item.remoteJid.split("@")[0] : ""}
                   </td>
                   <td className="px-6 py-4">
                     {item.connectionStatus === "open" ? (
@@ -136,18 +220,22 @@ const NumbersTable = () => {
                     {/* Menu suspenso */}
                     {activeMenu === item.id && (
                       <div
-                        ref={menuRef} // Conecta o menu à ref do menu
-                        className="absolute top-[calc(100%-40px)] left-5 bg-white border border-gray-200 rounded-lg shadow-lg w-30 z-50"
+                        ref={menuRef}
+                        className="absolute top-[calc(100%-40px)] left-5 bg-white border border-gray-200 rounded-lg shadow-lg w-35 z-50"
                       >
-                        {/* Botão Conectar */}
-                        <button className="flex items-center gap-2 w-full px-4 py-1 text-sm font-medium text-green-700 hover:bg-green-100 rounded-t-lg justify-left">
-                          <ScanQrCode className="w-4 h-4" /> {/* Ícone com tamanho reduzido */}
-                          Conectar
-                        </button>
+                        {/* botão des/conectar */}
+                        <ConnectionButton
+                          status={item.connectionStatus}
+                          instanceName={item.instanceName}
+                          onConnect={() => connectInstance(item.instanceName, setIsModalOpen, setModalStep, setModalQrCode)}
+                          onDesconnect={() => disconnectInstance(item.instanceName)}
+                        />
                     
-                        {/* Botão Deletar */}
-                        <button className="flex items-center gap-2 w-full px-4 py-1 text-sm font-medium text-red-600 hover:bg-red-100 rounded-b-lg justify-left">
-                          <Trash2 className="w-4 h-4" /> {/* Ícone com tamanho reduzido */}
+                        {/* botão deletar */}
+                        <button className="flex items-center gap-2 w-full px-4 py-1 text-sm font-medium text-red-600 hover:bg-red-100 rounded-b-lg justify-left"
+                          onClick={() => deleteInstance(item.instanceName)}
+                        >
+                          <Trash2 className="w-4 h-4" />
                           Deletar
                         </button>
                       </div>

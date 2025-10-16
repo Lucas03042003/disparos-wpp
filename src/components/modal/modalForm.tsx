@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import ModalQRCode from "./modalNewQRCode";
 
 import { v4 as uuidv4 } from 'uuid';
-import updateNumbers from "@/functions/updateNumbers";
+// import updateNumbers from "@/functions/updateNumbers"; Não é mais utilizado, estou usando web sockets
 import { authClient } from "@/lib/auth-client";
 
 const formSchema = z.object({
@@ -23,10 +23,10 @@ const formSchema = z.object({
   }),
 });
 
-export default function ModalForm({ state, onClose, description }: 
-  { state: boolean, onClose: () => void, description: string }) {
+export default function ModalForm({ state, onClose, description, qrCode, step }: 
+  { state: boolean, onClose: () => void, description: string, qrCode: string, step: number }) {
 
-  const [formStep, setFormStep] = useState<number>(0);
+  const [formStep, setFormStep] = useState<number>(step);
   const [name, setName] = useState<string>("");
   const [token] = useState(() => uuidv4().toUpperCase());
 
@@ -91,11 +91,11 @@ export default function ModalForm({ state, onClose, description }:
           className="absolute top-3 right-4 text-2xl text-gray-400 hover:text-gray-600"
           onClick={() => {
             onClose();
-            if (description.includes('whatsapp') && formStep !== 0) {
-              const instanceName = name;
-              updateNumbers({ instanceName, token, userId });
-              window.dispatchEvent(new CustomEvent('refreshMetaData'));
-            }
+            // if (description.includes('whatsapp') && formStep !== 0) {
+            //   const instanceName = name;
+            //   updateNumbers({ instanceName, token, userId });
+            //   window.dispatchEvent(new CustomEvent('refreshMetaData'));
+            // }
           }}
           aria-label="Fechar modal"
           type="button"
@@ -128,7 +128,14 @@ export default function ModalForm({ state, onClose, description }:
               <Button type="submit">Continuar</Button>
             </form>
           </Form>):(
-            <ModalQRCode name={name} token={token} userId={userId}/>
+            (qrCode === "")? (
+              <ModalQRCode name={name} token={token} userId={userId}/>
+            ) : (
+              <div>
+                <h3>Leia o QR-Code abaixo para conectar o whatsapp:</h3>
+                <img src={qrCode} alt="QR Code" className="filter-none" />
+              </div>
+            )
           )
         }
 

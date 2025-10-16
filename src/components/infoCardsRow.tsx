@@ -1,15 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import InfoCard from "@/components/common/info-cards";
 import { Phone, Zap, Send, UserRoundCheck } from "lucide-react";
 import Loading from "./common/loading";
+import { io, Socket } from "socket.io-client";
 
 const InfoCardsRow = () => {
     const { data: session } = authClient.useSession();
     const [metaData, setMetaData] = useState<any>(null);
-    const [refreshTrigger, setRefreshTrigger] = useState(0); // Estado de gatilho para o refresh
+
+    const socketRef = useRef<Socket | null>(null);
+
+    useEffect(() => {
+        // Conectar ao servidor Socket.IO definido em server.js
+        const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8080", {
+          transports: ["websocket", "polling"],
+          timeout: 20000,
+          query: { userId: session?.user.id }
+        });
+      
+        socketRef.current = socket;
+      
+        // Escutar atualizações dos números enviadas pelo evento `metadata_event_update`
+        socket.on("metadata_event_update", (payload) => {
+          setMetaData(payload); // Atualize todos os números recebidos
+        });
+      
+        // Cleanup ao desmontar o componente
+        return () => {
+          socket.disconnect();
+          socketRef.current = null;
+        };
+    }, [session?.user.id]); // [] garante que useEffect seja executado apenas uma vez
 
     // Fetch para obter os dados atualizados da API com dependência no refreshTrigger
     useEffect(() => {
@@ -19,20 +43,7 @@ const InfoCardsRow = () => {
             .then((res) => res.json())
             .then(setMetaData)
             .catch((err) => console.error("Erro ao buscar metadados:", err));
-    }, [session?.user?.id, refreshTrigger]); // Atualiza sempre que refreshTrigger mudar
-
-    // Configuração do listener para o evento customizado "refreshMetaData"
-    useEffect(() => {
-        const handleRefreshEvent = () => {
-            setRefreshTrigger((prev) => prev + 1); // Incrementa o gatilho de atualização
-        };
-
-        window.addEventListener('refreshMetaData', handleRefreshEvent); // Adiciona o evento global
-
-        return () => {
-            window.removeEventListener('refreshMetaData', handleRefreshEvent); // Remove o listener ao desmontar o componente
-        };
-    }, []);
+    }, [session?.user?.id]);
 
     // Mostra tela de loading enquanto os dados estão sendo carregados
     if (!metaData) {
