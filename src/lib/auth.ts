@@ -2,10 +2,19 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { nextCookies } from "better-auth/next-js";
+import { sendEmail } from "@/functions/send-email";
 
 export const auth = betterAuth({
+    emailVerification: {
+        sendVerificationEmail: async ({ url, user }) => {
+            await sendEmail(url, user)
+        }
+    },
     emailAndPassword: { 
         enabled: true, 
+        autoSignIn: false,
+        requireEmailVerification: true,
     }, 
     socialProviders: {
       google: {
@@ -29,4 +38,7 @@ export const auth = betterAuth({
     verification: {
         modelName: "verificationTable",
     },
+    plugins: [
+      nextCookies(),
+    ]
 });

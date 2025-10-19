@@ -43,6 +43,7 @@ export const SignInForm = () => {
 
         fetchOptions: {
           onSuccess: () => {
+            toast.success("Login realizado com sucesso!");
             router.push("/");
           },
           onError: (ctx) => {
@@ -59,6 +60,12 @@ export const SignInForm = () => {
               });
               return form.setError("email", {
                 message: "E-mail ou senha inválidos.",
+              });
+            }
+            if (ctx.error.message === "Email not verified") {
+              toast.error("E-mail não verificado.");
+              return form.setError("email", {
+                message: "E-mail não verificado.",
               });
             }
             toast.error(ctx.error.message);
