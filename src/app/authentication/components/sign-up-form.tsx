@@ -81,6 +81,9 @@ export const SignUpForm = () => {
     await authClient.signIn.social({
       provider: "google",
     });
+
+    toast.success("Redirecionando para o Google...");
+
   };
 
   return (
