@@ -14,7 +14,7 @@ import z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 
 const formSchema = z
   .object({
@@ -33,7 +33,7 @@ type FormValues = z.infer<typeof formSchema>;
 export const SignUpForm = () => {
   
   const [state, setState] = useState<boolean>(false);
-  const router = useRouter();
+  // const router = useRouter();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),

@@ -114,8 +114,13 @@ export const SignInForm = () => {
                     <FormItem>
                       <FormLabel>Senha</FormLabel>
                       <FormControl>
-                        <PasswordInput placeholder="Senha@123" {...field} ></PasswordInput>
+                        <PasswordInput placeholder="Senha@123" {...field} />
                       </FormControl>
+                      <div className="flex justify-end mt-1">
+                        <a href="/forgot-password" className="text-sm hover:underline">
+                          Esqueceu a senha?
+                        </a>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}

@@ -8,13 +8,16 @@ import { sendEmail } from "@/functions/send-email";
 export const auth = betterAuth({
     emailVerification: {
         sendVerificationEmail: async ({ url, user }) => {
-            await sendEmail(url, user)
+            await sendEmail(url, user, "verify_email")
         }
     },
     emailAndPassword: { 
         enabled: true, 
         autoSignIn: false,
         requireEmailVerification: true,
+        sendResetPassword: async ({user, url, token}, request) => {
+          await sendEmail(url, user, "reset_password")
+        },
     }, 
     socialProviders: {
       google: {
