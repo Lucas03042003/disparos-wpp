@@ -10,7 +10,6 @@ import {
   Text,
   Button,
   Hr,
-  Img,
   Link,
 } from "@react-email/components";
 import Logo from "@/components/common/logo";

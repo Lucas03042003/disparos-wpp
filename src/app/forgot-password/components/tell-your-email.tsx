@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authClient } from "@/lib/auth-client";
 
 export default function TellYourEmail() {
   const [email, setEmail] = useState("");
@@ -13,8 +14,11 @@ export default function TellYourEmail() {
     e.preventDefault();
 
     try {
-      // Aqui você chamaria o método do Better Auth:
-      // await authClient.requestPasswordReset({ email, redirectTo: "https://seusite.com/reset-password" });
+
+      await authClient.forgetPassword({
+          email: email,
+          redirectTo: "/reset-password",
+      });
 
       setMessage("Link de redefinição enviado, verifique seu e-mail.");
     } catch {
@@ -46,14 +50,14 @@ export default function TellYourEmail() {
 
         <Button
           type="submit"
-          className="w-full py-2 rounded-md font-semibold border"
+          className="w-full py-2 rounded-md font-semibold border cursor-pointer"
         >
           Envie o link de redefinição
         </Button>
 
         <a
           href="/authentication"
-          className="text-sm text-center underline"
+          className="text-sm text-center underline cursor-pointer"
         >
           Retornar ao sign in
         </a>

@@ -169,8 +169,8 @@ export const SignUpForm = () => {
           )}
 
           <CardFooter className="flex flex-col gap-2">
-            <Button type="submit" className="w-full">Criar Nova Conta</Button>
-                <Button type="button" className="w-full" variant="outline" onClick={handleSignInWithGoogle}>
+            <Button type="submit" className="w-full cursor-pointer">Criar Nova Conta</Button>
+                <Button type="button" className="w-full hover:bg-green-200 cursor-pointer" variant="outline" onClick={handleSignInWithGoogle}>
                   
                   <svg viewBox="0 0 24 24" className="h-4 w-4">
                     <path

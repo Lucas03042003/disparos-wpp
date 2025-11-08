@@ -13,8 +13,8 @@ export const Authentication = async () => {
         <div className="flex w-full max-w-sm flex-col p-5">
           <Tabs defaultValue="SignIn">
         <TabsList>
-          <TabsTrigger value="SignIn">Entrar</TabsTrigger>
-          <TabsTrigger value="SignUp">Criar Conta</TabsTrigger>
+          <TabsTrigger className="cursor-pointer" value="SignIn">Entrar</TabsTrigger>
+          <TabsTrigger className="cursor-pointer" value="SignUp">Criar Conta</TabsTrigger>
         </TabsList>
         <TabsContent value="SignIn">
             <SignInForm />

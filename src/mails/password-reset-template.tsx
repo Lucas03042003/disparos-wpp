@@ -1,6 +1,44 @@
+import {
+  Link,
+  Text,
+} from "@react-email/components";
+
 type VerificationEmailTemplateProps = {
   url: string;
   name: string;
+};
+
+const brand = {
+  name: "Whatsapp Sender",
+  primary: "#177a35ff", // azul
+  text: "#111827",
+  muted: "#6b7280",
+  bg: "#f9fafb",
+  border: "#e5e7eb",
+};
+
+const buttonStyle: React.CSSProperties = {
+  display: "inline-block",
+  backgroundColor: brand.primary,
+  color: "#ffffff",
+  textDecoration: "none",
+  padding: "12px 18px",
+  borderRadius: "8px",
+  fontWeight: 600,
+};
+
+const textStyle: React.CSSProperties = {
+  color: brand.text,
+  fontSize: "14px",
+  lineHeight: "22px",
+  margin: 0,
+};
+
+const mutedStyle: React.CSSProperties = {
+  color: brand.muted,
+  fontSize: "12px",
+  lineHeight: "20px",
+  margin: 0,
 };
 
 export default function PasswordResetEmail({ name, url }: VerificationEmailTemplateProps) {
@@ -23,49 +61,47 @@ export default function PasswordResetEmail({ name, url }: VerificationEmailTempl
         }}
       >
         <h2 style={{ textAlign: "center", color: "#111", fontSize: "22px" }}>
-          Redefina sua senha do <b>Better Auth</b>
+          Redefina sua senha do <b>WhatsApp Sender</b>
         </h2>
 
-        <p style={{ fontSize: "15px", color: "#444", marginTop: "24px" }}>
-          Olá <a href={`mailto:${name}`}>{name}</a>,
-        </p>
+        <Text style={textStyle}>
+          Olá, <strong>{name}</strong>!
+        </Text>
 
-        <p style={{ fontSize: "15px", color: "#444", lineHeight: "1.6" }}>
-          Recebemos uma solicitação para redefinir a senha da sua conta Better
-          Auth. Se você não fez essa solicitação, pode ignorar este e-mail com
+        <Text style={{...textStyle, fontSize: "15px", color: "#444", lineHeight: "1.6" }}>
+          Recebemos uma solicitação para redefinir a senha da sua conta do WhatsApp 
+          Sender. Se você não fez essa solicitação, pode ignorar este e-mail com
           segurança.
-        </p>
+        </Text>
 
-        <div style={{ textAlign: "center", margin: "32px 0" }}>
+        <div style={{...textStyle, textAlign: "center", margin: "32px 0" }}>
           <a
             href={url}
-            style={{
-              backgroundColor: "#000",
-              color: "#fff",
-              textDecoration: "none",
-              padding: "12px 24px",
-              borderRadius: "6px",
-              fontWeight: "bold",
-            }}
+            style={buttonStyle}
           >
             Redefinir Senha
           </a>
         </div>
 
-        <p style={{ fontSize: "14px", color: "#555" }}>
+        <Text style={{...textStyle, fontSize: "14px", color: "#555" }}>
           Ou copie e cole este link no seu navegador:
-        </p>
+        </Text>
 
-        <p style={{ wordBreak: "break-all", color: "#1a73e8", fontSize: "14px" }}>
-          {url}
-        </p>
+        <Text style={{ ...mutedStyle, marginTop: 6, wordBreak: "break-all" }}>
+          <Link
+            href={url}
+            style={{ color: brand.primary, textDecoration: "underline" }}
+          >
+            {url}
+          </Link>
+        </Text>
 
-        <hr style={{ margin: "32px 0", border: "none", borderTop: "1px solid #eee" }} />
+        <hr style={{...textStyle, margin: "32px 0", border: "none", borderTop: "1px solid #eee" }} />
 
-        <p style={{ fontSize: "13px", color: "#777", textAlign: "center" }}>
+        <Text style={{...textStyle, fontSize: "13px", color: "#777", textAlign: "center" }}>
           Se você não solicitou a redefinição de senha, ignore este e-mail ou
           entre em contato com o suporte se tiver dúvidas.
-        </p>
+        </Text>
       </div>
     </div>
   );
