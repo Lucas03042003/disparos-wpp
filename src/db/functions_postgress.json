@@ -1,37 +1,121 @@
 [
-    {"schema_name":"public",
-    "function_name":"decrement_active_numbers",
-    "definition":"CREATE OR REPLACE FUNCTION public.decrement_active_numbers()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  UPDATE \"metadata\"\n  SET active_numbers = active_numbers - 1\n  WHERE \"user_id\" = NEW.user_id;\n  RETURN NEW;\nEND;\n$function$\n"},
-    
-    {"schema_name":"public",
-    "function_name":"implement_meta_data",
-    "definition":"CREATE OR REPLACE FUNCTION public.implement_meta_data()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    INSERT INTO \"metadata\" (\"user_id\")\n    VALUES (NEW.id);\n    RETURN NEW;\nEND;\n$function$\n"},
-    
-    {"schema_name":"public",
-    "function_name":"increment_active_numbers",
-    "definition":"CREATE OR REPLACE FUNCTION public.increment_active_numbers()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  UPDATE \"metadata\"\n  SET active_numbers = active_numbers + 1\n  WHERE \"user_id\" = NEW.user_id;\n  RETURN NEW;\nEND;\n$function$\n"},
-    
-    {"schema_name":"public",
-    "function_name":"update_active_fluxes",
-    "definition":"CREATE OR REPLACE FUNCTION public.update_active_fluxes()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    affected_user_id text;\nBEGIN\n    -- Se for INSERT ou UPDATE → NEW.user_id\n    -- Se for DELETE → OLD.user_id\n    affected_user_id := COALESCE(NEW.user_id, OLD.user_id);\n\n    UPDATE \"metadata\"\n    SET active_fluxes = (\n      SELECT COUNT(*) \n      FROM \"fluxes\" \n      WHERE \"user_id\" = affected_user_id AND \"is_active\" = true\n    )\n    WHERE \"user_id\" = affected_user_id;\n\n    RETURN NEW;\nEND;\n$function$\n"},
-    
-    {"schema_name":"public",
-    "function_name":"update_active_numbers",
-    "definition":"CREATE OR REPLACE FUNCTION public.update_active_numbers()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    affected_user_id text;\nBEGIN\n    -- Se for INSERT ou UPDATE → NEW.user_id\n    -- Se for DELETE → OLD.user_id\n    affected_user_id := COALESCE(NEW.user_id, OLD.user_id);\n\n    UPDATE \"metadata\"\n    SET active_numbers = (\n      SELECT COUNT(*) \n      FROM \"numbers\" \n      WHERE \"user_id\" = affected_user_id \n        AND connection_status = 'open'\n    )\n    WHERE \"user_id\" = affected_user_id;\n\n    RETURN NEW;\nEND;\n$function$\n"},
-    
-    {"schema_name":"public",
-    "function_name":"update_messages_sent_today",
-    "definition":"CREATE OR REPLACE FUNCTION public.update_messages_sent_today()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    affected_user_id text;\nBEGIN\n    IF TG_OP = 'DELETE' THEN\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = OLD.flux_id;\n    ELSE\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = NEW.flux_id;\n    END IF;\n\n    UPDATE \"metadata\"\n    SET messages_sent_today = (\n      SELECT COUNT(*)\n      FROM \"contacts\"\n      WHERE \"flux_id\" IN (\n          SELECT id FROM \"fluxes\" WHERE \"user_id\" = affected_user_id\n      )\n      AND success = true\n      AND last_message_sent::date = CURRENT_DATE\n    )\n    WHERE \"user_id\" = affected_user_id;\n\n    IF TG_OP = 'DELETE' THEN\n        RETURN OLD;\n    ELSE\n        RETURN NEW;\n    END IF;\nEND;\n$function$\n"},
-    
-    {"schema_name":"public",
-    "function_name":"update_successful_contacts",
-    "definition":"CREATE OR REPLACE FUNCTION public.update_successful_contacts()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    affected_user_id text;\nBEGIN\n    IF TG_OP = 'DELETE' THEN\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = OLD.flux_id;\n    ELSE\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = NEW.flux_id;\n    END IF;\n\n    UPDATE \"metadata\"\n    SET successful_contacts = (\n      SELECT COUNT(*) \n      FROM \"contacts\" \n      WHERE \"flux_id\" IN (\n          SELECT id FROM \"fluxes\" WHERE \"user_id\" = affected_user_id\n      )\n      AND \"success\" = true\n    )\n    WHERE \"user_id\" = affected_user_id;\n\n    IF TG_OP = 'DELETE' THEN\n        RETURN OLD;\n    ELSE\n        RETURN NEW;\n    END IF;\nEND;\n$function$\n"},
-    
-    {"schema_name":"public",
-    "function_name":"update_total_contacts",
-    "definition":"CREATE OR REPLACE FUNCTION public.update_total_contacts()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    affected_user_id text;\nBEGIN\n    -- Obter user_id a partir do flux_id\n    IF TG_OP = 'DELETE' THEN\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = OLD.flux_id;\n    ELSE\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = NEW.flux_id;\n    END IF;\n\n    -- Atualizar total_contacts no metadata\n    UPDATE \"metadata\"\n    SET total_contacts = (\n      SELECT COUNT(*)\n      FROM \"contacts\"\n      WHERE \"flux_id\" IN (\n          SELECT id FROM \"fluxes\" WHERE \"user_id\" = affected_user_id\n      )\n    )\n    WHERE \"user_id\" = affected_user_id;\n\n    -- Retornar registro correto para cada operação\n    IF TG_OP = 'DELETE' THEN\n        RETURN OLD;\n    ELSE\n        RETURN NEW;\n    END IF;\nEND;\n$function$\n"},
-    
-    {"schema_name":"public",
-    "function_name":"update_unsuccessful_contacts",
-    "definition":"CREATE OR REPLACE FUNCTION public.update_unsuccessful_contacts()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    affected_user_id text;\nBEGIN\n    IF TG_OP = 'DELETE' THEN\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = OLD.flux_id;\n    ELSE\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = NEW.flux_id;\n    END IF;\n\n    UPDATE \"metadata\"\n    SET unsuccessful_contacts = (\n      SELECT COUNT(*) \n      FROM \"contacts\" \n      WHERE \"flux_id\" IN (\n          SELECT id FROM \"fluxes\" WHERE \"user_id\" = affected_user_id\n      )\n      AND \"success\" = false\n    )\n    WHERE \"user_id\" = affected_user_id;\n\n    IF TG_OP = 'DELETE' THEN\n        RETURN OLD;\n    ELSE\n        RETURN NEW;\n    END IF;\nEND;\n$function$\n"}
+    {
+        "LOCAL_DB_DRIZZLE": [
+        {
+            "trigger_name":"trigger_update_messages_sent_today",
+            "table_name":"contacts",
+            "schema_name":"public",
+            "function_name":"update_messages_sent_today",
+            "function_definition":"CREATE OR REPLACE FUNCTION public.update_messages_sent_today()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    affected_user_id text;\nBEGIN\n    -- Determina o \"affected_user_id\" com base na operação do gatilho\n    IF TG_OP = 'DELETE' THEN\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = OLD.flux_id;\n    ELSE\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = NEW.flux_id;\n    END IF;\n\n    -- Atualiza o campo \"messages_sent_today\" na tabela \"metadata\"\n    UPDATE \"metadata\"\n    SET messages_sent_today = (\n        SELECT COUNT(*)\n        FROM \"contacts\"\n        WHERE \"flux_id\" IN (\n            SELECT id\n            FROM \"fluxes\"\n            WHERE \"user_id\" = affected_user_id\n        )\n        AND success = true\n        AND last_message_sent::date = CURRENT_DATE\n    )\n    WHERE \"user_id\" = affected_user_id;\n\n    -- Retorna a linha OLD ou NEW com base na operação do gatilho\n    IF TG_OP = 'DELETE' THEN\n        RETURN OLD;\n    ELSE\n        RETURN NEW;\n    END IF;\nEND;\n$function$\n",
+            "trigger_timing":"AFTER",
+            "trigger_events":"INSERT OR DELETE OR UPDATE",
+            "status":"O",
+            "trigger_definition":"CREATE TRIGGER trigger_update_messages_sent_today AFTER INSERT OR DELETE OR UPDATE ON public.contacts FOR EACH ROW EXECUTE FUNCTION update_messages_sent_today()"
+        },
+        {
+            "trigger_name":"trigger_update_successful_contacts",
+            "table_name":"contacts",
+            "schema_name":"public",
+            "function_name":"update_successful_contacts",
+            "function_definition":"CREATE OR REPLACE FUNCTION public.update_successful_contacts()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    affected_user_id text;\nBEGIN\n    -- Determina o \"affected_user_id\" com base na operação do gatilho\n    IF TG_OP = 'DELETE' THEN\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = OLD.flux_id;\n    ELSE\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = NEW.flux_id;\n    END IF;\n\n    -- Atualiza o campo \"successful_contacts\" na tabela \"metadata\"\n    UPDATE \"metadata\"\n    SET successful_contacts = (\n        SELECT COUNT(*)\n        FROM \"contacts\"\n        WHERE \"flux_id\" IN (\n            SELECT id\n            FROM \"fluxes\"\n            WHERE \"user_id\" = affected_user_id\n        )\n        AND \"success\" = true\n    )\n    WHERE \"user_id\" = affected_user_id;\n\n    -- Retorna a linha OLD ou NEW com base no tipo de operação do gatilho\n    IF TG_OP = 'DELETE' THEN\n        RETURN OLD;\n    ELSE\n        RETURN NEW;\n    END IF;\nEND;\n$function$\n",
+            "trigger_timing":"AFTER",
+            "trigger_events":"INSERT OR DELETE OR UPDATE",
+            "status":"O",
+            "trigger_definition":"CREATE TRIGGER trigger_update_successful_contacts AFTER INSERT OR DELETE OR UPDATE ON public.contacts FOR EACH ROW EXECUTE FUNCTION update_successful_contacts()"
+        },
+        {
+            "trigger_name":"trigger_update_total_contacts",
+            "table_name":"contacts",
+            "schema_name":"public",
+            "function_name":"update_total_contacts",
+            "function_definition":"CREATE OR REPLACE FUNCTION public.update_total_contacts()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    affected_user_id text;\nBEGIN\n    -- Obter \"user_id\" a partir do \"flux_id\"\n    IF TG_OP = 'DELETE' THEN\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = OLD.flux_id;\n    ELSE\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = NEW.flux_id;\n    END IF;\n\n    -- Atualizar \"total_contacts\" no \"metadata\"\n    UPDATE \"metadata\"\n    SET total_contacts = (\n        SELECT COUNT(*)\n        FROM \"contacts\"\n        WHERE \"flux_id\" IN (\n            SELECT id\n            FROM \"fluxes\"\n            WHERE \"user_id\" = affected_user_id\n        )\n    )\n    WHERE \"user_id\" = affected_user_id;\n\n    -- Retornar o registro correto baseado no tipo de operação\n    IF TG_OP = 'DELETE' THEN\n        RETURN OLD;\n    ELSE\n        RETURN NEW;\n    END IF;\nEND;\n$function$\n",
+            "trigger_timing":"AFTER",
+            "trigger_events":"INSERT OR DELETE OR UPDATE",
+            "status":"O",
+            "trigger_definition":"CREATE TRIGGER trigger_update_total_contacts AFTER INSERT OR DELETE OR UPDATE ON public.contacts FOR EACH ROW EXECUTE FUNCTION update_total_contacts()"
+        },
+        {
+            "trigger_name":"trigger_update_unsuccessful_contacts",
+            "table_name":"contacts",
+            "schema_name":"public",
+            "function_name":"update_unsuccessful_contacts",
+            "function_definition":"CREATE OR REPLACE FUNCTION public.update_unsuccessful_contacts()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    affected_user_id text;\nBEGIN\n    -- Determinar \"affected_user_id\" com base na operação do gatilho\n    IF TG_OP = 'DELETE' THEN\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = OLD.flux_id;\n    ELSE\n        SELECT \"user_id\" INTO affected_user_id\n        FROM \"fluxes\"\n        WHERE id = NEW.flux_id;\n    END IF;\n\n    -- Atualizar \"unsuccessful_contacts\" na tabela \"metadata\"\n    UPDATE \"metadata\"\n    SET unsuccessful_contacts = (\n        SELECT COUNT(*)\n        FROM \"contacts\"\n        WHERE \"flux_id\" IN (\n            SELECT id\n            FROM \"fluxes\"\n            WHERE \"user_id\" = affected_user_id\n        )\n        AND \"success\" = false\n    )\n    WHERE \"user_id\" = affected_user_id;\n\n    -- Retornar a linha apropriada com base na operação do gatilho\n    IF TG_OP = 'DELETE' THEN\n        RETURN OLD;\n    ELSE\n        RETURN NEW;\n    END IF;\nEND;\n$function$\n",
+            "trigger_timing":"AFTER",
+            "trigger_events":"INSERT OR DELETE OR UPDATE",
+            "status":"O",
+            "trigger_definition":"CREATE TRIGGER trigger_update_unsuccessful_contacts AFTER INSERT OR DELETE OR UPDATE ON public.contacts FOR EACH ROW EXECUTE FUNCTION update_unsuccessful_contacts()"
+        },
+        {
+            "trigger_name":"trigger_update_active_fluxes",
+            "table_name":"fluxes",
+            "schema_name":"public",
+            "function_name":"update_active_fluxes",
+            "function_definition":"CREATE OR REPLACE FUNCTION public.update_active_fluxes()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    affected_user_id text;\nBEGIN\n    -- Se for INSERT ou UPDATE → NEW.user_id\n    -- Se for DELETE → OLD.user_id\n    affected_user_id := COALESCE(NEW.user_id, OLD.user_id);\n\n    UPDATE \"metadata\"\n    SET active_fluxes = (\n        SELECT COUNT(*)\n        FROM \"fluxes\"\n        WHERE \"user_id\" = affected_user_id AND \"is_active\" = true\n    )\n    WHERE \"user_id\" = affected_user_id;\n\n    RETURN NEW;\nEND;\n$function$\n",
+            "trigger_timing":"AFTER",
+            "trigger_events":"INSERT OR DELETE OR UPDATE",
+            "status":"O",
+            "trigger_definition":"CREATE TRIGGER trigger_update_active_fluxes AFTER INSERT OR DELETE OR UPDATE ON public.fluxes FOR EACH ROW EXECUTE FUNCTION update_active_fluxes()"
+        },
+        {
+            "trigger_name":"after_metadata_change",
+            "table_name":"metadata",
+            "schema_name":"public",
+            "function_name":"notify_metadata_change",
+            "function_definition":"CREATE OR REPLACE FUNCTION public.notify_metadata_change()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  PERFORM pg_notify('metadata_event', row_to_json(NEW)::text);\n  RETURN NEW;\nEND;\n$function$\n",
+            "trigger_timing":"AFTER",
+            "trigger_events":"INSERT OR DELETE OR UPDATE",
+            "status":"O",
+            "trigger_definition":"CREATE TRIGGER after_metadata_change AFTER INSERT OR DELETE OR UPDATE ON public.metadata FOR EACH ROW EXECUTE FUNCTION notify_metadata_change()"
+        },
+        {
+            "trigger_name":"after_numbers_change",
+            "table_name":"numbers",
+            "schema_name":"public",
+            "function_name":"notify_numbers_change",
+            "function_definition":"CREATE OR REPLACE FUNCTION public.notify_numbers_change()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n  user_numbers json;\nBEGIN\n  -- Consultar todos os números associados ao mesmo \"user_id\"\n  SELECT json_agg(row_to_json(n)) INTO user_numbers\n  FROM numbers n\n  WHERE n.user_id = COALESCE(NEW.user_id, OLD.user_id); -- Identifica o usuário pelo contexto (INSERT/DELETE/UPDATE)\n\n  -- Enviar a lista de números via notificação\n  PERFORM pg_notify('numbers_event', user_numbers::text);\n\n  -- Retornar NEW ou OLD de acordo com a operação\n  RETURN COALESCE(NEW, OLD);\nEND;\n$function$\n",
+            "trigger_timing":"AFTER",
+            "trigger_events":"INSERT OR DELETE OR UPDATE",
+            "status":"O",
+            "trigger_definition":"CREATE TRIGGER after_numbers_change AFTER INSERT OR DELETE OR UPDATE ON public.numbers FOR EACH ROW EXECUTE FUNCTION notify_numbers_change()"
+        },
+        {
+            "trigger_name":"trigger_update_active_numbers",
+            "table_name":"numbers",
+            "schema_name":"public",
+            "function_name":"update_active_numbers",
+            "function_definition":"CREATE OR REPLACE FUNCTION public.update_active_numbers()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    affected_user_id text;\nBEGIN\n    -- Se for INSERT ou UPDATE → NEW.user_id\n    -- Se for DELETE → OLD.user_id\n    affected_user_id := COALESCE(NEW.user_id, OLD.user_id);\n\n    UPDATE \"metadata\"\n    SET active_numbers = (\n        SELECT COUNT(*)\n        FROM \"numbers\"\n        WHERE \"user_id\" = affected_user_id\n          AND connection_status = 'open'\n    )\n    WHERE \"user_id\" = affected_user_id;\n\n    RETURN NEW;\nEND;\n$function$\n",
+            "trigger_timing":"AFTER",
+            "trigger_events":"INSERT OR DELETE OR UPDATE",
+            "status":"O",
+            "trigger_definition":"CREATE TRIGGER trigger_update_active_numbers AFTER INSERT OR DELETE OR UPDATE ON public.numbers FOR EACH ROW EXECUTE FUNCTION update_active_numbers()"
+        },
+        {
+            "trigger_name":"trigger_implement_meta_data",
+            "table_name":"user",
+            "schema_name":"public",
+            "function_name":"implement_meta_data",
+            "function_definition":"CREATE OR REPLACE FUNCTION public.implement_meta_data()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    INSERT INTO \"metadata\" (\"user_id\")\n    VALUES (NEW.id);\n\n    RETURN NEW;\nEND;\n$function$\n",
+            "trigger_timing":"AFTER",
+            "trigger_events":"INSERT",
+            "status":"O",
+            "trigger_definition":"CREATE TRIGGER trigger_implement_meta_data AFTER INSERT ON public.\"user\" FOR EACH ROW EXECUTE FUNCTION implement_meta_data()"
+        }]
+    },
+
+    {
+        "EVOLUTION_API_DB": {
+            "SELECT\r\n    t.tgname AS trigger_name,                      -- Nome do trigger\r\n    tbl.relname AS table_name,                     -- Nome da tabela onde o trigger está\r\n    ns.nspname AS schema_name,                     -- Nome do esquema da tabela\r\n    p.proname AS function_name,                    -- Nome da função usada pelo trigger\r\n    pg_get_functiondef(p.oid) AS function_definition, -- Corpo da função associada\r\n    CASE\r\n        WHEN t.tgtype::integer & 1 = 1 THEN 'AFTER'\r\n        WHEN t.tgtype::integer & 66 = 66 THEN 'BEFORE'\r\n        ELSE 'INSTEAD OF'\r\n    END AS trigger_timing,                         -- Momento do acionamento (AFTER, BEFORE, INSTEAD OF)\r\n    array_to_string(array[\r\n        CASE WHEN t.tgtype::integer & 4 = 4 THEN 'INSERT' END,\r\n        CASE WHEN t.tgtype::integer & 8 = 8 THEN 'DELETE' END,\r\n        CASE WHEN t.tgtype::integer & 16 = 16 THEN 'UPDATE' END,\r\n        CASE WHEN t.tgtype::integer & 64 = 64 THEN 'TRUNCATE' END\r\n    ], ' OR ') AS trigger_events,                  -- Eventos que acionam o trigger\r\n    t.tgenabled AS status,                         -- Status do trigger (O = habilitado, D = desabilitado)\r\n    pg_get_triggerdef(t.oid) AS trigger_definition -- Definição detalhada do gatilho\r\nFROM\r\n    pg_trigger t\r\nJOIN\r\n    pg_proc p ON t.tgfoid = p.oid                  -- Função associada ao trigger\r\nJOIN\r\n    pg_class tbl ON t.tgrelid = tbl.oid            -- Tabela associada ao trigger\r\nJOIN\r\n    pg_namespace ns ON tbl.relnamespace = ns.oid   -- Esquema associado à tabela\r\nWHERE\r\n    NOT t.tgisinternal                             -- Ignora triggers internos do PostgreSQL\r\nORDER BY\r\n    schema_name, table_name, trigger_name": [
+        	{
+        		"trigger_name" : "after_instance_change",
+        		"table_name" : "Instance",
+        		"schema_name" : "public",
+        		"function_name" : "notify_instance_change",
+        		"function_definition" : "CREATE OR REPLACE FUNCTION public.notify_instance_change()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n  -- Verifica se a operação é um UPDATE\r\n  -- Caso apenas o campo updatedAt mude, mas connectionStatus continue o mesmo, não insere nada em Change\r\n  IF TG_OP = 'UPDATE' AND \r\n     NEW.\"updatedAt\" IS DISTINCT FROM OLD.\"updatedAt\" AND\r\n     NEW.\"connectionStatus\" = OLD.\"connectionStatus\" THEN\r\n\r\n    RETURN NEW;\r\n  END IF;\r\n\r\n  -- Verifica se a operação é um DELETE\r\n  IF TG_OP = 'DELETE' THEN\r\n    INSERT INTO public.\"Change\"(\r\n      \"operation\", \r\n      \"instance_id\", \r\n      \"instance_name\", \r\n      \"new_connection_status\", \r\n      \"created_at\",\r\n\t  \"owner_jid\",\r\n\t  \"token\"\r\n    )\r\n    VALUES (\r\n      TG_OP, \r\n      OLD.id, \r\n      OLD.name, \r\n      OLD.\"connectionStatus\", \r\n      NOW(),\r\n\t  OLD.\"ownerJid\",\r\n\t  OLD.\"token\"\r\n    );\r\n  ELSE\r\n    -- Operações de INSERT ou UPDATE (diferente do caso ignorado acima)\r\n    INSERT INTO public.\"Change\"(\r\n      \"operation\", \r\n      \"instance_id\", \r\n      \"instance_name\", \r\n      \"new_connection_status\", \r\n      \"created_at\",\r\n\t  \"owner_jid\",\r\n\t  \"token\"\r\n    )\r\n    VALUES (\r\n      TG_OP, \r\n      NEW.id, \r\n      NEW.name, \r\n      NEW.\"connectionStatus\", \r\n      NOW(),\r\n\t  NEW.\"ownerJid\",\r\n\t  NEW.\"token\"\r\n    );\r\n  END IF;\r\n\r\n  -- Envia uma notificação usando pg_notify\r\n  PERFORM pg_notify('instance_event', '');\r\n\r\n  -- Retorna o registro NEW\r\n  RETURN NEW;\r\nEND;\r\n$function$\n",
+        		"trigger_timing" : "AFTER",
+        		"trigger_events" : "INSERT OR DELETE OR UPDATE",
+        		"status" : "O",
+        		"trigger_definition" : "CREATE TRIGGER after_instance_change AFTER INSERT OR DELETE OR UPDATE ON public.\"Instance\" FOR EACH ROW EXECUTE FUNCTION notify_instance_change()"
+        	}
+        ]}
+    }
 ]

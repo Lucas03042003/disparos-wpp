@@ -2,15 +2,29 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { nextCookies } from "better-auth/next-js";
+import { sendEmail } from "@/functions/send-email";
 
 export const auth = betterAuth({
+    emailVerification: {
+        sendVerificationEmail: async ({ url, user }) => {
+            await sendEmail(url, user, "verify_email")
+        }
+    },
     emailAndPassword: { 
         enabled: true, 
+        autoSignIn: false,
+        requireEmailVerification: true,
+        sendResetPassword: async ({user, url}) => {
+          await sendEmail(url, user, "reset_password")
+        },
     }, 
     socialProviders: {
       google: {
+        prompt: "select_account", 
         clientId: process.env.GOOGLE_CLIENT_ID as string,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+
       },
     },
     database: drizzleAdapter(db, {
@@ -29,4 +43,7 @@ export const auth = betterAuth({
     verification: {
         modelName: "verificationTable",
     },
+    plugins: [
+      nextCookies(),
+    ]
 });

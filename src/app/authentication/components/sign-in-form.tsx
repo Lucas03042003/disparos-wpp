@@ -43,6 +43,7 @@ export const SignInForm = () => {
 
         fetchOptions: {
           onSuccess: () => {
+            toast.success("Login realizado com sucesso!");
             router.push("/");
           },
           onError: (ctx) => {
@@ -59,6 +60,12 @@ export const SignInForm = () => {
               });
               return form.setError("email", {
                 message: "E-mail ou senha inválidos.",
+              });
+            }
+            if (ctx.error.message === "Email not verified") {
+              toast.error("E-mail não verificado.");
+              return form.setError("email", {
+                message: "E-mail não verificado.",
               });
             }
             toast.error(ctx.error.message);
@@ -107,16 +114,21 @@ export const SignInForm = () => {
                     <FormItem>
                       <FormLabel>Senha</FormLabel>
                       <FormControl>
-                        <PasswordInput placeholder="Senha@123" {...field} ></PasswordInput>
+                        <PasswordInput placeholder="Senha@123" {...field} />
                       </FormControl>
+                      <div className="flex justify-end mt-1">
+                        <a href="/forgot-password" className="text-sm hover:underline">
+                          Esqueceu a senha?
+                        </a>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
             </CardContent>
             <CardFooter className="flex flex-col gap-2">
-                <Button type="submit" className="w-full">Entrar</Button>
-                <Button type="button" className="w-full" variant="outline" onClick={handleSignInWithGoogle}>
+                <Button type="submit" className="w-full cursor-pointer">Entrar</Button>
+                <Button type="button" className="w-full hover:bg-green-200 cursor-pointer" variant="outline" onClick={handleSignInWithGoogle}>
                   
                   <svg viewBox="0 0 24 24" className="h-4 w-4">
                     <path

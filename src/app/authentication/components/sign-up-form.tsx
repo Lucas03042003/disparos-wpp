@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import React from "react";
 import { useForm } from "react-hook-form";
 
@@ -14,6 +14,7 @@ import z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
+// import { useRouter } from "next/navigation";
 
 const formSchema = z
   .object({
@@ -31,7 +32,8 @@ type FormValues = z.infer<typeof formSchema>;
 
 export const SignUpForm = () => {
   
-  const router = useRouter();
+  const [state, setState] = useState<boolean>(false);
+  // const router = useRouter();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -43,36 +45,45 @@ export const SignUpForm = () => {
     },
   });
 
-  async function onSubmit(values: FormValues) {
-    await authClient.signUp.email({
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      // chame sem depender só do fetchOptions.onSuccess
+      const res = await authClient.signUp.email({
         name: values.name,
         email: values.email,
         password: values.password,
+      });
 
-        fetchOptions: {
-          onSuccess: () => {
-            router.push("/");
-            toast.success("Conta criada com sucesso!");
-          },
-          onError: (error) => {
-            if (error.error.message.includes("User already exists.")) {
-              toast.error("E-mail já cadastrado.");
-              return form.setError("email", {
-                message: "E-mail já cadastrado.",
-              });
-            }
-            toast.error(error.error.message);
-          },
-        }
+      // Se o client lançar em caso de erro, chegamos aqui somente em sucesso.
+      // Alguns clients retornam um objeto; ajuste conforme o retorno real:
+      console.log("signUp result:", res);
 
-    });
+      setState(true);
+      toast.success("Conta criada! Verifique seu e‑mail para confirmar seu cadastro.");
 
+    } catch (error: any) {
+      console.error("signUp error:", error);
+
+      // tente extrair mensagem do error
+      const message = error?.error?.message ?? error?.message ?? String(error);
+
+      if (String(message).includes("User already exists")) {
+        form.setError("email", { message: "E-mail já cadastrado." });
+        toast.error("E-mail já cadastrado.");
+        return;
+      }
+
+      toast.error(message);
+    }
   };
 
   const handleSignInWithGoogle = async () => {
     await authClient.signIn.social({
       provider: "google",
     });
+
+    toast.success("Redirecionando para o Google...");
+
   };
 
   return (
@@ -148,9 +159,18 @@ export const SignUpForm = () => {
             />
 
           </CardContent>
+
+          {state && (
+            <div className="mt-1 flex justify-center text-center">
+              <span className="px-4 py-2 rounded-lg bg-green-100 text-green-700 font-medium shadow-sm border border-green-300">
+                Conta criada com sucesso! Por favor, verifique seu e‑mail para continuar.
+              </span>
+            </div>
+          )}
+
           <CardFooter className="flex flex-col gap-2">
-            <Button type="submit" className="w-full">Criar Nova Conta</Button>
-                <Button type="button" className="w-full" variant="outline" onClick={handleSignInWithGoogle}>
+            <Button type="submit" className="w-full cursor-pointer">Criar Nova Conta</Button>
+                <Button type="button" className="w-full hover:bg-green-200 cursor-pointer" variant="outline" onClick={handleSignInWithGoogle}>
                   
                   <svg viewBox="0 0 24 24" className="h-4 w-4">
                     <path
@@ -175,6 +195,7 @@ export const SignUpForm = () => {
                   
                 </Button>
           </CardFooter>
+
         </form>
       </Form>
 
