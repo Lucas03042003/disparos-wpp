@@ -1,6 +1,6 @@
 "use client";
 
-import { LogInIcon, LogOutIcon, MenuIcon } from "lucide-react";
+import { Crown, LogInIcon, LogOutIcon, MenuIcon } from "lucide-react";
 import Logo from "./logo";
 import Link from "next/link";
 
@@ -88,6 +88,16 @@ export const Header = () => {
                 </div>
               )}
             </div>
+
+            <div className="ml-5 mr-5 flex flex-col">
+              <Button
+                onClick={() => router.push("/subscriptions")}
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 rounded-xl px-5 py-2">       
+                <Crown className="w-4 h-4" />
+                Ver Planos de Assinatura
+              </Button>
+            </div>
+
           </SheetContent>
         </Sheet>
       </div>
