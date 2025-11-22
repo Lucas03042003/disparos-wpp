@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Check, Zap, Crown, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner";
 
 export default function AssinaturasPage() {
+
   const router = useRouter()
 
   const planos = [
@@ -20,7 +22,7 @@ export default function AssinaturasPage() {
       ],
       icone: <Zap className="w-6 h-6 text-green-500" />,
       gradient: "from-gray-200 to-gray-300",
-      action: () => router.push("/signup?plano=free"),
+      action: () => toast.info("Para alterar seu plano, você deve primeiro logar em uma conta!"),
     },
     {
       nome: "Basic",
@@ -33,10 +35,10 @@ export default function AssinaturasPage() {
       ],
       icone: <Check className="w-6 h-6 text-emerald-600" />,
       gradient: "from-green-400 to-emerald-600",
-      action: () => router.push("/checkout?plano=basic"),
+      action: () => toast.info("Para alterar seu plano, você deve primeiro logar em uma conta!"),
     },
     {
-      nome: "Pro",
+      nome: "Premium",
       preco: "R$220,00/mês",
       descricao: "Ideal para empresas e times que precisam de escala.",
       beneficios: [
@@ -46,7 +48,7 @@ export default function AssinaturasPage() {
       ],
       icone: <Crown className="w-6 h-6 text-yellow-500" />,
       gradient: "from-yellow-400 to-amber-600",
-      action: () => router.push("/checkout?plano=pro"),
+      action: () => toast.info("Para alterar seu plano, você deve primeiro logar em uma conta!"),
     },
   ]
 
@@ -121,3 +123,59 @@ export default function AssinaturasPage() {
     </main>
   )
 }
+
+  // type sessionType = typeof session;
+
+  // const handleSelectedPlan = async (plan: string, subscriptionId: string, session: sessionType) => {
+  //     const { error } = await authClient.subscription.billingPortal({
+  //         locale:"pt-BR",
+  //         referenceId: session!.user.id,
+  //         returnUrl: "/",
+  //     });
+
+  //     if(error) {
+  //       toast.error(error.message);
+  //     }
+
+      // const subscriptions = await getSubscriptions(session!.user.id);
+
+      // if (!subscriptions && plan === "Free Trial") {
+      //   return toast.error(`Você já está no plano ${plan}!`);
+      // }
+
+      // if (subscriptions && (plan == subscriptions?.plan)) {
+      //   return toast.error(`Você já está no plano ${plan}!`);
+      // }
+
+      // if (plan === "Free Trial" && subscriptions) {
+      //   const { data, error } = await authClient.subscription.cancel({
+      //       referenceId: session!.user.id,
+      //       subscriptionId: subscriptionId,
+      //       returnUrl: '/subscriptions',
+      //   });
+
+      //   if(error) {
+      //     toast.error(error.message);
+      //   }
+
+      //   return toast.success("Você mudou para o free trial!");
+      // };
+
+      // const { data, error } = await authClient.subscription.upgrade({
+      //         plan: plan,
+      //         annual: true,
+      //         referenceId: session!.user.id,
+      //         subscriptionId: subscriptionId,
+      //         seats: 1,
+      //         successUrl: "/", // required
+      //         cancelUrl: "/subscriptions", // required
+      //         disableRedirect: true, // required
+      //     });
+
+      // if(error) {
+      //   toast.error(error.message);
+      // }
+
+      // return toast.success(`Você mudou para o plano ${plan}!`);
+
+  // }

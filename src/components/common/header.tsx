@@ -3,6 +3,7 @@
 import { Crown, LogInIcon, LogOutIcon, MenuIcon } from "lucide-react";
 import Logo from "./logo";
 import Link from "next/link";
+import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
@@ -27,6 +28,20 @@ export const Header = () => {
     authClient.signOut();
     router.push("/authentication");
   };
+
+  type sessionType = typeof session;
+
+  const handleSubscriptionButton = async (session: sessionType) => {
+      const { error } = await authClient.subscription.billingPortal({
+          locale:"pt-BR",
+          referenceId: session!.user.id,
+          returnUrl: "/",
+      });
+
+      if(error) {
+        toast.error(error.message);
+      }
+  }
 
   return (
     <header className="ml-10 flex items-center justify-between p-5">
@@ -89,14 +104,27 @@ export const Header = () => {
               )}
             </div>
 
-            <div className="ml-5 mr-5 flex flex-col">
-              <Button
-                onClick={() => router.push("/subscriptions")}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 rounded-xl px-5 py-2">       
-                <Crown className="w-4 h-4" />
-                Ver Planos de Assinatura
-              </Button>
-            </div>
+            {session?.user ? (
+              <div className="ml-5 mr-5 flex flex-col">
+                <Button
+                  onClick={() => handleSubscriptionButton(session)}
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 rounded-xl px-5 py-2"
+                >
+                  <Crown className="w-4 h-4" />
+                  Gerenciar Assinatura
+                </Button>
+              </div>
+            ) : (
+              <div className="ml-5 mr-5 flex flex-col">
+                <Button
+                  onClick={() => router.push('/subscriptions')}
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 rounded-xl px-5 py-2"
+                >
+                  <Crown className="w-4 h-4" />
+                  Ver Planos de Assinatura
+                </Button>
+              </div>
+            )}
 
           </SheetContent>
         </Sheet>

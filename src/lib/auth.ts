@@ -57,26 +57,29 @@ export const auth = betterAuth({
             createCustomerOnSignUp: true,
             subscription: {
                 enabled: true,
+                authorizeReference: async (data) => {
+                    return data.user.id === data.referenceId;
+                },
                 plans: [
                     {
                         name: "Free Trial",
-                        price_id: "price_1SSId9POrjfEl65X7TXk1beH",
+                        priceId: "price_1SSId9POrjfEl65X7TXk1beH",
                         limits: {
-                            todos: 1
+                            numbers: 1
                         }
                     },
                     {
                         name: "Basic",
-                        price_id: "price_1SSFiwPOrjfEl65XGUA3UFPu",
+                        priceId: "price_1SSFiwPOrjfEl65XGUA3UFPu",
                         limits: {
-                            todos: 2
+                            numbers: 2
                         }
                     },
                     {
                         name: "Premium",
-                        price_id: "price_1SSFjgPOrjfEl65XOc8fOlAt",
+                        priceId: "price_1SSFjgPOrjfEl65XOc8fOlAt",
                         limits: {
-                            todos: 5
+                            numbers: 5,
                         }
                     }
                 ]
