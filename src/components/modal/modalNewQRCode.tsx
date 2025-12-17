@@ -31,14 +31,16 @@ const ModalQRCode: React.FC<ModalQRCodeProps> = ({ name, token, userId }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          "instanceName": `${userId} : ${name}`,
-          "token": token
+          "name": name,
+          "token": token,
+          "userId": userId
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao criar instância');
+        setError(errorData.error);
+        throw new Error(errorData.error);
       }
 
       const data = await response.json();
@@ -61,7 +63,9 @@ const ModalQRCode: React.FC<ModalQRCodeProps> = ({ name, token, userId }) => {
 
     } catch (err: any) {
       console.error('Erro:', err);
-      setError(err.message);
+      if (!error){  
+        setError(err.message);
+      };
       hasExecuted.current = false; // Permite retentar em caso de erro
     } finally {
       setTimeout(() => {
@@ -100,10 +104,8 @@ const ModalQRCode: React.FC<ModalQRCodeProps> = ({ name, token, userId }) => {
         </button>
       </div>
     );
-  }
-
-  if (!qrCodeData) {
-    return <p>Parece que há algum erro com o whatsapp! Nenhum dado de QR Code recebido.</p>;
+  } else if (!qrCodeData) {
+    return <p>Parece que há algum erro na conexão com o whatsapp! Nenhum dado de QR Code recebido.</p>;
   }
 
   return (

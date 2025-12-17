@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { pgEnum, pgTable, text, uuid, timestamp, boolean, varchar, integer } from "drizzle-orm/pg-core";
 
 export const statusEnum = pgEnum("status", ["ativo", "inativo"]);
@@ -104,8 +104,8 @@ export const subscription = pgTable("subscription", {
   status: text("status").default("incomplete"),
   periodStart: timestamp("period_start"),
   periodEnd: timestamp("period_end"),
-  trialStart: timestamp("trial_start"),
-  trialEnd: timestamp("trial_end"),
+  trialStart: timestamp("trial_start").defaultNow(),
+  trialEnd: timestamp("trial_end").default(sql`now() + INTERVAL '7 days'`),
   cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
   seats: integer("seats"),
 });

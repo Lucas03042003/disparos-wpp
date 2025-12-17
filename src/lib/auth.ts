@@ -61,18 +61,18 @@ export const auth = betterAuth({
                     return data.user.id === data.referenceId;
                 },
                 plans: [
-                    {
-                        name: "Free Trial",
-                        priceId: "price_1SSId9POrjfEl65X7TXk1beH",
-                        limits: {
-                            numbers: 1
-                        }
-                    },
+                    // {
+                    //     name: "Free Trial",
+                    //     priceId: "price_1SSId9POrjfEl65X7TXk1beH",
+                    //     limits: {
+                    //         numbers: 1
+                    //     }
+                    // },
                     {
                         name: "Basic",
                         priceId: "price_1SSFiwPOrjfEl65XGUA3UFPu",
                         limits: {
-                            numbers: 2
+                            numbers: 2,
                         }
                     },
                     {

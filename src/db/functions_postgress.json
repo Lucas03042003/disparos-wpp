@@ -103,6 +103,10 @@
     },
 
     {
+        "EVOLUTION_API_DB_NEW_TABLE": "CREATE TABLE public.Change (id SERIAL PRIMARY KEY,operation VARCHAR(10) NOT NULL,instance_id TEXT NOT NULL,instance_name TEXT NOT NULL,new_connection_status TEXT NOT NULL,created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),owner_jid TEXT,token TEXT);"
+    },
+
+    {
         "EVOLUTION_API_DB": {
             "SELECT\r\n    t.tgname AS trigger_name,                      -- Nome do trigger\r\n    tbl.relname AS table_name,                     -- Nome da tabela onde o trigger está\r\n    ns.nspname AS schema_name,                     -- Nome do esquema da tabela\r\n    p.proname AS function_name,                    -- Nome da função usada pelo trigger\r\n    pg_get_functiondef(p.oid) AS function_definition, -- Corpo da função associada\r\n    CASE\r\n        WHEN t.tgtype::integer & 1 = 1 THEN 'AFTER'\r\n        WHEN t.tgtype::integer & 66 = 66 THEN 'BEFORE'\r\n        ELSE 'INSTEAD OF'\r\n    END AS trigger_timing,                         -- Momento do acionamento (AFTER, BEFORE, INSTEAD OF)\r\n    array_to_string(array[\r\n        CASE WHEN t.tgtype::integer & 4 = 4 THEN 'INSERT' END,\r\n        CASE WHEN t.tgtype::integer & 8 = 8 THEN 'DELETE' END,\r\n        CASE WHEN t.tgtype::integer & 16 = 16 THEN 'UPDATE' END,\r\n        CASE WHEN t.tgtype::integer & 64 = 64 THEN 'TRUNCATE' END\r\n    ], ' OR ') AS trigger_events,                  -- Eventos que acionam o trigger\r\n    t.tgenabled AS status,                         -- Status do trigger (O = habilitado, D = desabilitado)\r\n    pg_get_triggerdef(t.oid) AS trigger_definition -- Definição detalhada do gatilho\r\nFROM\r\n    pg_trigger t\r\nJOIN\r\n    pg_proc p ON t.tgfoid = p.oid                  -- Função associada ao trigger\r\nJOIN\r\n    pg_class tbl ON t.tgrelid = tbl.oid            -- Tabela associada ao trigger\r\nJOIN\r\n    pg_namespace ns ON tbl.relnamespace = ns.oid   -- Esquema associado à tabela\r\nWHERE\r\n    NOT t.tgisinternal                             -- Ignora triggers internos do PostgreSQL\r\nORDER BY\r\n    schema_name, table_name, trigger_name": [
         	{
