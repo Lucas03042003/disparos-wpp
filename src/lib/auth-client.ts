@@ -1,4 +1,12 @@
-import { createAuthClient } from "better-auth/react"; // make sure to import from better-auth/react
-export const authClient =  createAuthClient({});
+import { createAuthClient } from "better-auth/react";
+import { stripeClient } from "@better-auth/stripe/client"
+
+export const authClient =  createAuthClient({
+    plugins: [
+        stripeClient({
+            subscription: true
+        })
+    ]
+})
 
 export type Session = typeof authClient.$Infer.Session.user;

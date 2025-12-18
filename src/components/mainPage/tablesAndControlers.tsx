@@ -9,7 +9,7 @@ import ModalForm from "../modal/modalForm";
 
 export default function TablesAndControllers() {
 
-  const [buttonType, setbuttonType] = useState<string>("+ Adicionar Número");
+  const [buttonType, setButtonType] = useState<string>("+ Adicionar Número");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [modalKey, setModalKey] = useState<number>(0); // contador para recriar modal
   const [qrCode, setQrCode] = useState<string>("");
@@ -41,13 +41,13 @@ export default function TablesAndControllers() {
               <TabsList>
                 <TabsTrigger 
                   value="gerenciar" 
-                  onClick={() => setbuttonType("+ Adicionar Número")}
+                  onClick={() => setButtonType("+ Adicionar Número")}
                 >
                   Gerenciar Números
                 </TabsTrigger>
                 <TabsTrigger 
                   value="fluxos" 
-                  onClick={() => setbuttonType("+ Adicionar Fluxos")}
+                  onClick={() => setButtonType("+ Adicionar Fluxos")}
                 >
                   Configurar Fluxos
                 </TabsTrigger>
