@@ -3,6 +3,9 @@ import { pgEnum, pgTable, text, uuid, timestamp, boolean, varchar, integer } fro
 
 export const statusEnum = pgEnum("status", ["ativo", "inativo"]);
 export const connectionStatusEnum = pgEnum("connection_status", ["open", "close", "connecting"]);
+export const stepsEnum = pgEnum("step_type", ["text", "image", "video"]);
+export const intervalUnitEnum = pgEnum("interval_unit", ["day", "week", "month", "year"]);
+export const dispatchStatusEnum = pgEnum("dispatch_status", ["queued", "sent", "failed", "canceled"]);
 
 // Better Auth
 
@@ -27,6 +30,7 @@ export const userRelations = relations(userTable, ({ one, many }) => ({
     account: many(accountTable),
     fluxes: many(fluxesTable),
     numbers: many(numbersTable),
+    logs: many(dispatchLogsTable),
     metaData: one(metaDataUsersTable, {
       fields: [userTable.id],
       references: [metaDataUsersTable.userId],
@@ -119,8 +123,10 @@ export const fluxesTable = pgTable("fluxes", {
     id: uuid("id").primaryKey().defaultRandom(),
     userId: text("user_id").notNull().references(() => userTable.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
-    message: text("message"),
-    documentURL: text("document_url"),
+
+    intervalValue: integer("interval_value").notNull().default(1),
+    intervalUnit: intervalUnitEnum("interval_unit").notNull().default("day"),
+
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     isActive: boolean("is_active").notNull().default(true),
@@ -133,6 +139,25 @@ export const fluxesRelations = relations(fluxesTable, ({ one, many }) => ({
     }),
     numbers: many(numbersTable),
     contacts: many(contactsTable),
+    steps: many(stepsTable),
+    logs: many(dispatchLogsTable),
+}));
+
+export const stepsTable = pgTable("steps", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    fluxId: uuid("flux_id").notNull().references(() => fluxesTable.id, { onDelete: "cascade" }),
+    stepPosition: integer("step_position").notNull(),
+    stepType: stepsEnum("step_type").notNull().default("text"),
+    message: text("message"),
+    documentURL: text("document_url")
+})
+
+export const stepsRelations = relations(stepsTable, ({ one, many }) => ({
+    flux: one(fluxesTable, {
+        fields: [stepsTable.fluxId],
+        references: [fluxesTable.id]
+    }),
+    logs: many(dispatchLogsTable),
 }));
 
 // Numbers - Números de whatsapp conectados
@@ -169,16 +194,19 @@ export const contactsTable = pgTable("contacts", {
     name: varchar("name", { length: 255 }).notNull(),
     phoneNumber: varchar("phone_number", { length: 20 }).notNull(),
     lastMessageSent: timestamp("last_message_sent", { withTimezone: true }),
-    success: boolean("success").default(false),
+    step: integer().notNull().default(1),
+    numberSuccess: integer("number_success").notNull().default(0),
+    numberFails: integer("number_fails").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const contactsRelations = relations(contactsTable, ({ one }) => ({
+export const contactsRelations = relations(contactsTable, ({ one, many }) => ({
     flux: one(fluxesTable, {
         fields: [contactsTable.fluxId],
         references: [fluxesTable.id]
-    })
+    }),
+    logs: many(dispatchLogsTable),
 }));
 
 export const metaDataUsersTable = pgTable("metadata", {
@@ -197,6 +225,41 @@ export const metaDataUsersRelations = relations(metaDataUsersTable, ({ one }) =>
         fields: [metaDataUsersTable.userId],
         references: [userTable.id]
     })
+}));
+
+export const dispatchLogsTable = pgTable("dispatch_logs", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull().references(() => userTable.id, { onDelete: "cascade" }),
+    fluxId: uuid("flux_id").notNull().references(() => fluxesTable.id, { onDelete: "cascade" }),
+    contactId: uuid("contact_id").notNull().references(() => contactsTable.id, { onDelete: "cascade" }),
+    stepId: uuid("step_id").notNull().references(() => stepsTable.id),
+    instanceName: text("instance_name").notNull(), // Qual instância enviou
+    
+    status: dispatchStatusEnum("status").notNull(),
+    errorLog: text("error_log"),
+    
+    sentAt: timestamp("sent_at", { withTimezone: true }),  
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const dispatchLogsRelations = relations(dispatchLogsTable, ({ one }) => ({
+    user: one(userTable, {
+        fields: [dispatchLogsTable.userId],
+        references: [userTable.id]
+    }),
+    contact: one(contactsTable, {
+        fields: [dispatchLogsTable.contactId],
+        references: [contactsTable.id]
+    }),
+    step: one(stepsTable, {
+        fields: [dispatchLogsTable.stepId],
+        references: [stepsTable.id]
+    }),
+    flux: one(fluxesTable, {
+        fields: [dispatchLogsTable.fluxId],
+        references: [fluxesTable.id]
+    }),
 }));
 
 // Types
