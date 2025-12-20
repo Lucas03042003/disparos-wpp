@@ -5,31 +5,42 @@ import { Button } from "@/components/ui/button"
 import NumbersTable from "./numbersTable"
 import FluxesTable from "./fluxesTable"
 import { useState } from "react";
-import ModalForm from "../modal/modalForm";
+import ModalFormNumber from "../modal/modalFormNumber";
+import { Flux } from "../modal/modalFormFluxes";
+import { toast } from "sonner";
+import { CreateFluxModal } from "../modal/createModalFormFlux";
 
 export default function TablesAndControllers() {
 
   const [buttonType, setButtonType] = useState<string>("+ Adicionar Número");
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [modalKey, setModalKey] = useState<number>(0); // contador para recriar modal
+  const [isModalNumberOpen, setIsModalNumberOpen] = useState<boolean>(false);
+  const [modalNumberKey, setModalNumberKey] = useState<number>(0); // contador para recriar modal
+  const [fuxSelect, setFluxSelect] = useState<Flux[]>([]);
+  const [isModalFluxOpen, setIsModalFluxOpen] = useState(false);
   const [qrCode, setQrCode] = useState<string>("");
   const [step, setStep] = useState<number>(0);
 
+  const handleCreateFlux = (fluxData: Omit<Flux, "id" | "createdAt">) => {
+    const newFlux: Flux = {
+      ...fluxData,
+      id: crypto.randomUUID(),
+      createdAt: new Date(),
+    };
+    setFluxSelect((prev) => [newFlux, ...prev]);
+    toast.success(`Fluxo ${newFlux.nickname} criado com sucesso!`);
+  };
+
   return (
     <>
-      <ModalForm 
-        key={modalKey} // força recriação sempre que o contador mudar
-        state={isModalOpen} 
+      <ModalFormNumber 
+        key={modalNumberKey} // força recriação sempre que o contador mudar
+        state={isModalNumberOpen} 
         onClose={() => {
-          setIsModalOpen(false) 
+          setIsModalNumberOpen(false) 
           setQrCode("")
           setStep(0)
         }}
-        description={
-          buttonType === "+ Adicionar Número" 
-            ? "Dê um apelido a esse whatsapp." 
-            : "Dê um nome a esse fluxo."
-        } 
+        description="Dê um apelido a esse whatsapp." 
         qrCode={qrCode}
         step = {step}
       />
@@ -55,16 +66,26 @@ export default function TablesAndControllers() {
               <Button 
                 className="bg-green-500 hover:bg-green-600 text-white" 
                 onClick={() => {
-                  setModalKey(prev => prev + 1); // incrementa key
-                  setIsModalOpen(true); // abre o modal
+                  if (buttonType === "+ Adicionar Número") {
+                    setModalNumberKey(prev => prev + 1); // incrementa key
+                    setIsModalNumberOpen(true); // abre o modal
+                  } else {
+                    setIsModalFluxOpen(true);
+                  }
                 }}
               >
                 {buttonType}
               </Button>
             </div>
 
-            <NumbersTable setIsModalOpen = {() => setIsModalOpen(true)} setModalStep = {() => setStep(1)} setModalQrCode = {(qrCode:string) => setQrCode(qrCode)}/>
+            <NumbersTable setIsModalOpen = {() => setIsModalNumberOpen(true)} setModalStep = {() => setStep(1)} setModalQrCode = {(qrCode:string) => setQrCode(qrCode)}/>
             <FluxesTable/>
+
+            <CreateFluxModal
+              open={isModalFluxOpen}
+              onOpenChange={setIsModalFluxOpen}
+              onSubmit={handleCreateFlux}
+            />
 
           </Tabs>
         </div>
