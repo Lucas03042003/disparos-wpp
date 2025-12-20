@@ -7,9 +7,30 @@ import { XIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 function Dialog({
+  open,
+  onOpenChange,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+  React.useEffect(() => {
+    if (open) {
+      // Calcular a largura da scrollbar
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.documentElement.style.overflow = "hidden";
+      if (scrollbarWidth > 0) {
+        document.documentElement.style.paddingRight = `${scrollbarWidth}px`;
+      }
+    } else {
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.paddingRight = "";
+    }
+
+    return () => {
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.paddingRight = "";
+    };
+  }, [open]);
+
+  return <DialogPrimitive.Root data-slot="dialog" open={open} onOpenChange={onOpenChange} {...props} />
 }
 
 function DialogTrigger({
@@ -38,7 +59,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/60 backdrop-blur-sm",
         className
       )}
       {...props}

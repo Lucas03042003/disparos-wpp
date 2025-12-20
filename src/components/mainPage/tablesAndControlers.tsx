@@ -45,6 +45,12 @@ export default function TablesAndControllers() {
         step = {step}
       />
 
+      <CreateFluxModal
+        open={isModalFluxOpen}
+        onOpenChange={setIsModalFluxOpen}
+        onSubmit={handleCreateFlux}
+      />
+
       <div className="space-y-6 gap-6 p-5 ml-20 mr-20 mt-5">
         <div className="flex items-center justify-between">
           <Tabs defaultValue="gerenciar" className="w-full">
@@ -80,12 +86,6 @@ export default function TablesAndControllers() {
 
             <NumbersTable setIsModalOpen = {() => setIsModalNumberOpen(true)} setModalStep = {() => setStep(1)} setModalQrCode = {(qrCode:string) => setQrCode(qrCode)}/>
             <FluxesTable/>
-
-            <CreateFluxModal
-              open={isModalFluxOpen}
-              onOpenChange={setIsModalFluxOpen}
-              onSubmit={handleCreateFlux}
-            />
 
           </Tabs>
         </div>

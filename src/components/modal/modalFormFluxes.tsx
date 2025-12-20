@@ -62,7 +62,7 @@ export function FluxCard({ flux, onDelete }: FluxCardProps) {
               onClick={() => onDelete(flux.id)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Delete
+              Deletar
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -83,7 +83,7 @@ export function FluxCard({ flux, onDelete }: FluxCardProps) {
           ))}
           {flux.steps.length > 3 && (
             <p className="text-xs text-muted-foreground pl-7">
-              +{flux.steps.length - 3} more step{flux.steps.length - 3 !== 1 ? "s" : ""}
+              +{flux.steps.length - 3} mais step{flux.steps.length - 3 !== 1 ? "s" : ""}
             </p>
           )}
         </div>
