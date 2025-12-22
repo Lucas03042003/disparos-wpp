@@ -6,6 +6,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Contact } from "@/components/modal/modalContatUploader";
 
 export type StepType = "send_text" | "send_media";
 export type TimeUnit = "days" | "weeks" | "months" | "years";
@@ -24,6 +25,7 @@ export interface Flux {
   intervalValue: number;
   intervalUnit: TimeUnit;
   steps: FluxStep[];
+  contacts: Contact[];
   createdAt: Date;
 }
 
@@ -112,3 +114,5 @@ export function FluxCard({ flux, onDelete }: FluxCardProps) {
     </div>
   );
 };
+
+export { Contact };
