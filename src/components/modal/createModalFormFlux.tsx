@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { authClient } from "@/lib/auth-client";
 
 const TIME_UNIT_LABELS: Record<TimeUnit, { singular: string; plural: string }> = {
   days: { singular: "Dia", plural: "Dias" },
@@ -51,6 +52,8 @@ export function CreateFluxModal({
   const [nicknameError, setNicknameError] = useState("");
   const [intervalError, setIntervalError] = useState("");
   const [isSelectOpen, setIsSelectOpen] = useState(false);
+
+  const { data: session } = authClient.useSession();
 
   useEffect(() => {
     if (open) {
@@ -158,18 +161,26 @@ export function CreateFluxModal({
             return step;
         }));
 
-        const flux = {
-            nickname: nickname.trim(),
-            steps: processedSteps,
-            intervalValue,
-            intervalUnit,
-            contacts
+        const flux: Omit<Flux, "id" | "createdAt"> = {
+          nickname: nickname.trim(),
+          steps: processedSteps,
+          intervalValue,
+          intervalUnit,
+          contacts
         };
 
         onSubmit(flux);
         handleClose();
 
-        console.log("Fluxo criado:", flux);
+        const payload = { ...flux, userId: session?.user.id };
+
+        await fetch("/api/db/newFluxes/orchestrate", {
+            method: "POST",
+            body: JSON.stringify(payload),
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
 
     } catch (error) {
         console.error("Erro no upload:", error);

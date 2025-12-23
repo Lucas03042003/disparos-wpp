@@ -4,7 +4,7 @@ import { pgEnum, pgTable, text, uuid, timestamp, boolean, varchar, integer } fro
 export const statusEnum = pgEnum("status", ["ativo", "inativo"]);
 export const connectionStatusEnum = pgEnum("connection_status", ["open", "close", "connecting"]);
 export const stepsEnum = pgEnum("step_type", ["text", "image", "video"]);
-export const intervalUnitEnum = pgEnum("interval_unit", ["day", "week", "month", "year"]);
+export const intervalUnitEnum = pgEnum("interval_unit", ["day", "days", "week", "weeks", "month", "months", "year", "years"]);
 export const dispatchStatusEnum = pgEnum("dispatch_status", ["queued", "sent", "failed", "canceled"]);
 
 // Better Auth
