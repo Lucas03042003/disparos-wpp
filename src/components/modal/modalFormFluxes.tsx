@@ -114,5 +114,5 @@ export function FluxCard({ flux, onDelete }: FluxCardProps) {
     </div>
   );
 };
-
 export { Contact };
+

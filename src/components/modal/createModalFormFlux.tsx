@@ -116,15 +116,65 @@ export function CreateFluxModal({
     setWizardStep("contacts");
   };
 
-  const handleSubmit = () => {
-    onSubmit({
-      nickname: nickname.trim(),
-      steps,
-      intervalValue,
-      intervalUnit,
-      contacts
+  const uploadFileToR2 = async (file: File) => {
+    // 1. Solicita a URL assinada ao seu back-end
+    const response = await fetch("/api/cloudfareR2/getUrl", {
+        method: "POST",
+        body: JSON.stringify({ 
+            fileName: file.name, 
+            size: file.size,
+            contentType: file.type 
+        }),
     });
-    handleClose();
+    
+    const { uploadUrl, publicUrl } = await response.json();
+
+    // 2. Faz o upload direto para o Cloudflare R2
+    await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+            "Content-Type": file.type,
+        },
+    });
+
+    return publicUrl;
+  };
+
+  const handleSubmit = async () => {
+    try {
+        // Processa todos os passos que possuem arquivos de mídia
+        const processedSteps = await Promise.all(steps.map(async (step) => {
+            if (step.type === "send_media" && step.mediaFile) {
+                const mediaUrl = await uploadFileToR2(step.mediaFile);
+                
+                return {
+                    ...step,
+                    mediaUrl,
+                    mediaFile: undefined,
+                    mediaPreview: undefined
+                };
+            }
+            return step;
+        }));
+
+        const flux = {
+            nickname: nickname.trim(),
+            steps: processedSteps,
+            intervalValue,
+            intervalUnit,
+            contacts
+        };
+
+        onSubmit(flux);
+        handleClose();
+
+        console.log("Fluxo criado:", flux);
+
+    } catch (error) {
+        console.error("Erro no upload:", error);
+    }
+
   };
 
   if (!open) return null;

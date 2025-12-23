@@ -6,3 +6,6 @@ Better-auth config:
 
 NFe e Stripe:
 1. https://youtu.be/i36AlJtEO4M?si=lc6s-8F49-NicsCZ
+
+Cloudfare R2:
+1. https://youtu.be/tWYShrD6cNE?si=9yB_7P0RCgtATbrM
