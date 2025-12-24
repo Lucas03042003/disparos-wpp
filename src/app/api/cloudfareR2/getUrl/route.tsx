@@ -25,9 +25,9 @@ export async function POST(request: Request) {
         );
     }
     
-    const sizeLimit = 5 * 1024 * 1024; // 5MB
+    const sizeLimit = 80 * 1024 * 1024; // 80MB -> limite do wpp é 100
     if (size > sizeLimit) {
-        return NextResponse.json("Arquivo excede o tamanho máximo de 5MB", { status: 400 });
+        return NextResponse.json("Arquivo excede o tamanho máximo de envio do whatsapp", { status: 400 });
     }
     
     const command = new PutObjectCommand({
