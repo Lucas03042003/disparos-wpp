@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StepBuilder } from "./modalStepBuilderFluxes";
 import { ContactsUploader } from "./modalContatUploader";
+import Loading from "./../common/loading";
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -52,6 +53,7 @@ export function CreateFluxModal({
   const [nicknameError, setNicknameError] = useState("");
   const [intervalError, setIntervalError] = useState("");
   const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Estado para o Loading
 
   const { data: session } = authClient.useSession();
 
@@ -95,6 +97,7 @@ export function CreateFluxModal({
     setNicknameError("");
     setIntervalError("");
     setIsSelectOpen(false);
+    setIsSubmitting(false);
     onOpenChange(false);
   };
 
@@ -119,105 +122,133 @@ export function CreateFluxModal({
     setWizardStep("contacts");
   };
 
-  const uploadFileToR2 = async (file: File) => {
-    // 1. Solicita a URL assinada ao seu back-end
+  const uploadFileToR2 = async (file: File): Promise<string> => {
     const response = await fetch("/api/cloudfareR2/getUrl", {
-        method: "POST",
-        body: JSON.stringify({ 
-            fileName: file.name, 
-            size: file.size,
-            contentType: file.type 
-        }),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileName: file.name,
+        size: file.size,
+        contentType: file.type,
+      }),
     });
-    
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const errorText = errorData || "Erro ao gerar URL de upload";
+      throw new Error(errorText);
+    }
+
     const { uploadUrl, publicUrl } = await response.json();
 
-    // 2. Faz o upload direto para o Cloudflare R2
-    await fetch(uploadUrl, {
-        method: "PUT",
-        body: file,
-        headers: {
-            "Content-Type": file.type,
-        },
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type },
     });
+
+    if (!uploadResponse.ok) {
+      throw new Error("Erro ao fazer upload para o R2");
+    }
 
     return publicUrl;
   };
 
   const handleSubmit = async () => {
+    setIsSubmitting(true); // Ativa o loading
     try {
-        // Processa todos os passos que possuem arquivos de mídia
-        const processedSteps = await Promise.all(steps.map(async (step) => {
-            if (step.type === "send_media" && step.mediaFile) {
-                const mediaUrl = await uploadFileToR2(step.mediaFile);
-                
-                return {
-                    ...step,
-                    mediaUrl,
-                    mediaFile: undefined,
-                    mediaPreview: undefined
-                };
-            }
-            return step;
-        }));
+      const processedSteps = await Promise.all(
+        steps.map(async (step) => {
+          if (step.type === "send_media" && step.mediaFile) {
+            const mediaUrl = await uploadFileToR2(step.mediaFile);
+            return {
+              ...step,
+              mediaUrl,
+              mediaFile: undefined,
+              mediaPreview: undefined,
+            };
+          }
+          return step;
+        })
+      );
 
-        const flux: Omit<Flux, "id" | "createdAt"> = {
-          nickname: nickname.trim(),
-          steps: processedSteps,
-          intervalValue,
-          intervalUnit,
-          contacts
-        };
+      const flux: Omit<Flux, "id" | "createdAt"> = {
+        nickname: nickname.trim(),
+        steps: processedSteps,
+        intervalValue,
+        intervalUnit,
+        contacts,
+      };
 
-        onSubmit(flux);
-        handleClose();
+      const payload = { ...flux, userId: session?.user.id };
 
-        const payload = { ...flux, userId: session?.user.id };
+      const saveResponse = await fetch("/api/db/newFluxes/orchestrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-        await fetch("/api/db/newFluxes/orchestrate", {
-            method: "POST",
-            body: JSON.stringify(payload),
-            headers: {
-                "Content-Type": "application/json",
-            },
-        });
+      if (!saveResponse.ok) {
+        throw new Error("Erro ao salvar fluxo no banco de dados");
+      }
 
-    } catch (error) {
-        console.error("Erro no upload:", error);
+      onSubmit(flux);
+      handleClose();
+    } catch (error: any) {
+      console.error("Erro no processo:", error);
+      if (error.message === "Arquivo excede o tamanho máximo de envio do whatsapp") {
+        alert("⚠️ O arquivo selecionado é maior do que o permitido pelo WhatsApp.");
+      } else {
+        alert("Erro ao salvar o fluxo. Tente novamente.");
+      }
+    } finally {
+      setIsSubmitting(false); // Desativa o loading independente do resultado
     }
-
   };
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={!isSubmitting ? handleClose : undefined} />
 
-      <div className="relative z-[110] w-full max-w-lg bg-white rounded-xl shadow-2xl flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-        <button onClick={handleClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors z-[120]">
+      <div className="relative z-[110] w-full max-w-lg bg-white rounded-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        
+        {/* Overlay de Loading */}
+        <AnimatePresence>
+          {isSubmitting && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[130] bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center"
+            >
+              <Loading />
+              <p className="mt-4 text-sm font-medium text-primary animate-pulse">Salvando seu fluxo...</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button 
+          onClick={handleClose} 
+          disabled={isSubmitting}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors z-[120] disabled:opacity-0"
+        >
           <X className="h-5 w-5" />
         </button>
 
         <div className="p-8 overflow-y-auto">
-          {/* Progress Bar Corrigida */}
+          {/* Progress Bar */}
           <div className="flex items-center gap-2 mb-8 pr-6">
-            {/* Passo 1: Nickname */}
             <div className={cn(
               "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-all", 
               wizardStep === "nickname" ? "bg-primary text-primary-foreground" : "bg-primary/20 text-primary"
             )}>
               {wizardStep !== "nickname" ? <Check className="h-4 w-4" /> : "1"}
             </div>
-            
             <div className="h-0.5 flex-1 bg-border relative">
-              <div className={cn(
-                "absolute inset-y-0 left-0 bg-primary transition-all duration-500", 
-                (wizardStep === "steps" || wizardStep === "contacts") ? "w-full" : "w-0"
-              )} />
+              <div className={cn("absolute inset-y-0 left-0 bg-primary transition-all duration-500", (wizardStep === "steps" || wizardStep === "contacts") ? "w-full" : "w-0")} />
             </div>
-
-            {/* Passo 2: Steps */}
             <div className={cn(
               "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-all", 
               wizardStep === "steps" ? "bg-primary text-primary-foreground" : 
@@ -225,15 +256,9 @@ export function CreateFluxModal({
             )}>
               {wizardStep === "contacts" ? <Check className="h-4 w-4" /> : "2"}
             </div>
-
             <div className="h-0.5 flex-1 bg-border relative">
-              <div className={cn(
-                "absolute inset-y-0 left-0 bg-primary transition-all duration-500", 
-                wizardStep === "contacts" ? "w-full" : "w-0"
-              )} />
+              <div className={cn("absolute inset-y-0 left-0 bg-primary transition-all duration-500", wizardStep === "contacts" ? "w-full" : "w-0")} />
             </div>
-
-            {/* Passo 3: Contacts */}
             <div className={cn(
               "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-all", 
               wizardStep === "contacts" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
@@ -251,7 +276,6 @@ export function CreateFluxModal({
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">Defina o nome e a frequência do seu novo fluxo.</p>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="nickname" className="text-sm font-semibold text-gray-700">Apelido do Fluxo <span className="text-destructive">*</span></Label>
                 <Input
@@ -264,7 +288,6 @@ export function CreateFluxModal({
                 />
                 {nicknameError && <p className="text-xs text-destructive font-medium">{nicknameError}</p>}
               </div>
-
               <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
                 <Label className="text-sm font-semibold flex items-center gap-2 text-gray-700"><Clock className="h-4 w-4 text-primary" />Intervalo entre disparos</Label>
                 <div className="flex gap-2">
@@ -302,7 +325,6 @@ export function CreateFluxModal({
                 </div>
                 {intervalError && <p className="text-xs text-destructive font-medium">{intervalError}</p>}
               </div>
-
               <div className="flex justify-end pt-4 border-t">
                 <Button onClick={handleNicknameNext} className="w-full sm:w-auto px-8 h-11 shadow-sm">Próximo Passo <ArrowRight className="ml-2 h-4 w-4" /></Button>
               </div>
@@ -320,11 +342,9 @@ export function CreateFluxModal({
                   <p className="text-sm text-muted-foreground mt-1">Defina as mensagens e o tempo de espera entre cada passo.</p>
                 </div>
               </div>
-
               <div className="flex-1 overflow-y-auto pr-2 min-h-[300px]">
                 <StepBuilder steps={steps} onStepsChange={setSteps} />
               </div>
-
               <div className="flex justify-between pt-6 border-t gap-3 mt-auto bg-white">
                 <Button variant="ghost" onClick={() => setWizardStep("nickname")} className="h-11">
                   <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
@@ -345,17 +365,19 @@ export function CreateFluxModal({
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">Opcional: importe uma lista de contatos para este flux.</p>
               </div>
-
               <div className="flex-1 overflow-y-auto pr-2 max-h-[400px]">
                 <ContactsUploader contacts={contacts} onContactsChange={setContacts} />
               </div>
-
               <div className="flex justify-between pt-6 border-t gap-3 mt-auto bg-white">
-                <Button variant="ghost" onClick={() => setWizardStep("steps")} className="h-11">
+                <Button variant="ghost" onClick={() => setWizardStep("steps")} disabled={isSubmitting} className="h-11">
                   <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
                 </Button>
-                <Button onClick={handleSubmit} className="flex-1 px-8 h-11 shadow-md bg-primary hover:bg-primary/90 text-white font-bold transition-all">
-                  <Check className="mr-2 h-4 w-4" /> Criar Fluxo
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={isSubmitting}
+                  className="flex-1 px-8 h-11 shadow-md bg-primary hover:bg-primary/90 text-white font-bold transition-all"
+                >
+                  <Check className="mr-2 h-4 w-4" /> {isSubmitting ? "Salvando..." : "Criar Fluxo"}
                 </Button>
               </div>
             </div>
