@@ -21,9 +21,8 @@ import { twMerge } from 'tailwind-merge';
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner"; // Ou sua biblioteca de toast preferida
+import { toast } from "sonner";
 
-// Utilitário cn para facilitar o uso de classes condicionais
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -45,7 +44,7 @@ type NumberItems = {
   updatedAt: Date;
 };
 
-// Funções de API existentes
+// Funções de API
 async function connectInstance(instanceName: string, setIsModalOpen: () => void, setModalStep: () => void, setModalQrCode: (qr: string) => void) {
   try {
     const response = await fetch('/api/evolution-api/conectar-instancia', {
@@ -117,7 +116,6 @@ const NumbersTable = ({
   const [numbers, setNumbers] = useState<NumberItems[] | null>(null);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
-  // --- NOVOS ESTADOS PARA FLUXOS ---
   const [fluxOptions, setFluxOptions] = useState<FluxOption[]>([]);
   const [selectedFluxes, setSelectedFluxes] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState<string | null>(null);
@@ -127,13 +125,49 @@ const NumbersTable = ({
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
-  // Buscar Opções de Fluxos
+  // 1. Busca Inicial de Fluxos e Números
   useEffect(() => {
     if (!session?.user?.id) return;
+
+    // Carregar Fluxos
     fetch("/api/db/getFluxes?UserId=" + session.user.id)
       .then((res) => res.json())
       .then(setFluxOptions)
       .catch((err) => console.error("Erro ao buscar fluxos:", err));
+
+    // Carregar Números
+    fetch("/api/db/getNumbers?UserId=" + session.user.id)
+      .then((res) => res.json())
+      .then(setNumbers)
+      .catch(() => setNumbers([]));
+  }, [session?.user?.id]);
+
+  // 2. Unificação do Socket.IO (Números + Fluxos)
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8080", {
+      transports: ["websocket", "polling"],
+      query: { userId: session.user.id }
+    });
+
+    socketRef.current = socket;
+
+    // Listener para atualização de Números
+    socket.on("numbers_event_update", (payload: NumberItems[]) => {
+      setNumbers(payload);
+    });
+
+    // Listener para atualização de Fluxos (Realtime)
+    socket.on("fluxes_event_update", (payload: FluxOption[]) => {
+      console.log("📥 Atualização de fluxos recebida via socket:", payload);
+      setFluxOptions(payload);
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
   }, [session?.user?.id]);
 
   // Sincronizar selectedFluxes quando a lista de números carregar
@@ -146,29 +180,8 @@ const NumbersTable = ({
       setSelectedFluxes(initialSelected);
     }
   }, [numbers]);
-
-  // Socket.io Logic
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8080", {
-      transports: ["websocket", "polling"],
-      query: { userId: session.user.id }
-    });
-    socketRef.current = socket;
-    socket.on("numbers_event_update", (payload) => setNumbers(payload));
-    return () => { socket.disconnect(); socketRef.current = null; };
-  }, [session?.user?.id]);
-
-  // Fetch Inicial de Números
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    fetch("/api/db/getNumbers?UserId=" + session.user.id)
-      .then((res) => res.json())
-      .then(setNumbers)
-      .catch(() => setNumbers([]));
-  }, [session?.user?.id]);
   
-  // Click Outside para fechar menus
+  // Click Outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node) &&
@@ -180,7 +193,6 @@ const NumbersTable = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --- FUNÇÃO PARA SALVAR CONEXÃO ---
   const handleSaveConnection = async (numberId: string) => {
     const fluxIdValue = selectedFluxes[numberId];
     const fluxIdToSend = fluxIdValue === "none" ? null : fluxIdValue;
@@ -236,7 +248,6 @@ const NumbersTable = ({
                     {item.remoteJid ? item.remoteJid.split("@")[0] : "---"}
                   </td>
 
-                  {/* COLUNA DE FLUXO ADICIONADA */}
                   <td className="px-6 py-4">
                     <div className="relative max-w-[200px]">
                       <button 
