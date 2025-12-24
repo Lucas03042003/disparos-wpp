@@ -22,7 +22,8 @@ async function initializePostgreSQLListener() {
     // Escutando os eventos
     await client.query("LISTEN numbers_event");
     await client.query("LISTEN metadata_event");
-    console.log("✅ Escutando eventos: numbers_event e metadata_event");
+    await client.query("LISTEN fluxes_event");
+    console.log("✅ Escutando eventos: numbers_event, metadata_event e fluxes_event");
 
     // Manipulador de notificações
     client.on("notification", (msg) => {

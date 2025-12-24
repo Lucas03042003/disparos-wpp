@@ -57,6 +57,17 @@
             "trigger_definition":"CREATE TRIGGER after_numbers_change AFTER INSERT OR DELETE OR UPDATE ON public.numbers FOR EACH ROW EXECUTE FUNCTION notify_numbers_change()"
         },
         {
+            "trigger_name": "after_fluxes_change",
+            "table_name": "fluxes",
+            "schema_name": "public",
+            "function_name": "notify_fluxes_change",
+            "function_definition": "CREATE OR REPLACE FUNCTION public.notify_fluxes_change()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n  user_fluxes json;\nBEGIN\n  -- Agrega todos os fluxos do usuário afetado em um array JSON\n  SELECT json_agg(row_to_json(f)) INTO user_fluxes\n  FROM fluxes f\n  WHERE f.user_id = COALESCE(NEW.user_id, OLD.user_id);\n\n  -- Dispara a notificação para o canal 'fluxes_event'\n  PERFORM pg_notify('fluxes_event', user_fluxes::text);\n\n  -- Retorna o registro (NEW para insert/update, OLD para delete)\n  RETURN COALESCE(NEW, OLD);\nEND;\n$function$\n",
+            "trigger_timing": "AFTER",
+            "trigger_events": "INSERT OR DELETE OR UPDATE",
+            "status": "O",
+            "trigger_definition": "CREATE TRIGGER after_fluxes_change AFTER INSERT OR DELETE OR UPDATE ON public.fluxes FOR EACH ROW EXECUTE FUNCTION notify_fluxes_change()"
+        },
+        {
             "trigger_name":"trigger_update_active_numbers",
             "table_name":"numbers",
             "schema_name":"public",
