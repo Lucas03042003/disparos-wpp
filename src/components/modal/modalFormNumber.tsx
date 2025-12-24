@@ -65,6 +65,10 @@ export default function ModalFormNumber({ state, onClose, description, qrCode, s
     return () => window.removeEventListener("keydown", esc);
   }, [state, onClose]);
 
+  useEffect(() => {
+    setFormStep(step);
+  }, [step]);
+
   // AO ENVIAR O FORMULÁRIO
   function onSubmit(values: z.infer<typeof formSchema>) {
     setFormStep(1);
