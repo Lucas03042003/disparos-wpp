@@ -12,8 +12,8 @@ type FluxesItems = {
   id: string;
   userId: string;
   name: string;
-  message: string | null;
-  documentURL?: string | null;
+  intervalValue: number;
+  intervalUnit: string;
   createdAt: Date;
   updatedAt: Date;
   isActive: boolean;
@@ -81,11 +81,11 @@ const FluxesTable = () => {
         fluxes.map((item: FluxesItems, idx: number) => (
           <div key={item.id ?? idx} className="text-muted-foreground text-sm">
             <FluxItem 
-              title={item.name} 
-              message={item.message} 
-              schedule={new Date(item.createdAt).toLocaleDateString('pt-BR')} 
-              active={item.isActive}
-            />
+              title={item.name}
+              intervalValue={item.intervalValue}
+              intervalUnit={item.intervalUnit}
+              schedule={new Date(item.createdAt).toLocaleDateString('pt-BR')}
+              active={item.isActive} id={item.id}            />
           </div>
         ))
       ) : (
