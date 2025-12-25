@@ -58,7 +58,10 @@ const InfoCardsRow = () => {
     const metaSuccess = metaData.successfulContacts ?? 0;
     const metaUnsuccess = metaData.unsuccessfulContacts ?? 0;
     
-    const taxa = `${(metaSuccess) * 100 / ((metaUnsuccess === 0 ? 1 : metaUnsuccess ?? 1) + metaSuccess)}%`;
+    const taxa = `${(
+                      (metaSuccess * 100) /
+                      ((metaUnsuccess === 0 ? 1 : metaUnsuccess ?? 1) + metaSuccess)
+                    ).toFixed(2)}%`;
 
     return ( 
         <div className="mt-5 align-text-top justify-center items-center flex gap-12">

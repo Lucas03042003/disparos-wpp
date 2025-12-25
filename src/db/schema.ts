@@ -238,8 +238,8 @@ export const dispatchLogsTable = pgTable("dispatch_logs", {
     status: dispatchStatusEnum("status").notNull(),
     errorLog: text("error_log"),
     
-    sentAt: timestamp("sent_at", { withTimezone: true }),  
-    scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),  
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
