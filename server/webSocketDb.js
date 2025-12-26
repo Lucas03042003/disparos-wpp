@@ -8,115 +8,127 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
 
-// Configuração do PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// Escuta eventos PostgreSQL
+// Funções de Mapeamento (Banco -> Drizzle)
+const mappers = {
+  numbers_event: (data) => data.map(item => ({
+    id: item.id,
+    fluxId: item.flux_id,
+    userId: item.user_id,
+    remoteJid: item.remote_jid,
+    instanceName: item.instance_name,
+    token: item.token,
+    connectionStatus: item.connection_status,
+    createdAt: item.created_at,
+    updatedAt: item.updated_at,
+  })),
+
+  fluxes_event: (data) => data.map(item => ({
+    id: item.id,
+    userId: item.user_id,
+    name: item.name,
+    intervalValue: item.interval_value,
+    intervalUnit: item.interval_unit,
+    createdAt: item.created_at,
+    updatedAt: item.updated_at,
+    isActive: item.is_active,
+  })),
+
+  metadata_event: (item) => ({
+    id: item.id,
+    userId: item.user_id,
+    activeNumbers: item.active_numbers,
+    activeFluxes: item.active_fluxes,
+    successfulContacts: item.successful_contacts,
+    unsuccessfulContacts: item.unsuccessful_contacts,
+    messagesSentToday: item.messages_sent_today,
+    totalContacts: item.total_contacts,
+  })
+};
+
 async function initializePostgreSQLListener() {
   try {
     const client = await pool.connect();
 
-    // Escutando os eventos
-    await client.query("LISTEN numbers_event");
-    await client.query("LISTEN metadata_event");
-    console.log("✅ Escutando eventos: numbers_event e metadata_event");
+    // Canais que o servidor vai escutar
+    const channels = ["numbers_event", "metadata_event", "fluxes_event"];
+    for (const channel of channels) {
+      await client.query(`LISTEN ${channel}`);
+    }
+    
+    console.log(`✅ Escutando eventos: ${channels.join(", ")}`);
 
-    // Manipulador de notificações
     client.on("notification", (msg) => {
       try {
-        // 🔹 Se payload for vazio ou nulo, retorna JSON vazio
+        const channel = msg.channel;
+        
+        // 1. Tratamento de Payload Vazio
         if (!msg.payload || msg.payload.trim() === "") {
-          console.log(`⚠️ Payload vazio recebido de [${msg.channel}]`);
-
-          io.sockets.sockets.forEach((s) => {
-            if (msg.channel === "numbers_event") {
-              s.emit(`${msg.channel}_update`, []); // array vazio
-            } else if (msg.channel === "metadata_event") {
-              s.emit(`${msg.channel}_update`, {}); // objeto vazio
-            }
-          });
-
-          return; // encerra antes de tentar parsear
+          console.log(`⚠️ Payload vazio em [${channel}]`);
+          const emptyValue = channel === "metadata_event" ? {} : [];
+          io.emit(`${channel}_update`, emptyValue);
+          return;
         }
 
-        const payload = JSON.parse(msg.payload);
+        const rawData = JSON.parse(msg.payload);
+        
+        // 2. Mapeamento Dinâmico baseado no canal
+        const mapper = mappers[channel];
+        if (!mapper) return;
 
-        // Mapeando dados para os nomes de colunas esperados no Drizzle
-        const mappedPayload = Array.isArray(payload)
-          ? payload.map((item) => ({
-              id: item.id,
-              fluxId: item.flux_id,
-              userId: item.user_id,
-              remoteJid: item.remote_jid,
-              instanceName: item.instance_name,
-              token: item.token,
-              connectionStatus: item.connection_status,
-              createdAt: item.created_at,
-              updatedAt: item.updated_at,
-            }))
-          : {
-              id: payload.id,
-              userId: payload.user_id,
-              activeNumbers: payload.active_numbers,
-              activeFluxes: payload.active_fluxes,
-              successfulContacts: payload.successful_contacts,
-              unsuccessfulContacts: payload.unsuccessful_contacts,
-              messagesSentToday: payload.messages_sent_today,
-              totalContacts: payload.total_contacts,
-            };
+        const mappedData = mapper(rawData);
+        console.log(`📥 Notificação [${channel}] processada.`);
 
-        console.log(`📥 Notificação [${msg.channel}]:`, mappedPayload);
+        // 3. Distribuição Filtrada por UserId
+        io.sockets.sockets.forEach((socket) => {
+          const socketUserId = String(socket.userId);
 
-        // Enviar os dados mapeados para o front-end via Socket.IO
-        if (Array.isArray(mappedPayload)) {
-          // 🔹 numbers_event → array de números
-          io.sockets.sockets.forEach((s) => {
-            const filtered = mappedPayload.filter(
-              (item) => String(item.userId) === String(s.userId)
+          if (Array.isArray(mappedData)) {
+            // Para arrays (numbers e fluxes), filtramos os itens do usuário
+            const userSpecificData = mappedData.filter(
+              (item) => String(item.userId) === socketUserId
             );
-            // sempre envia (mesmo vazio)
-            s.emit(`${msg.channel}_update`, filtered.length > 0 ? filtered : []);
-          });
-        } else {
-          // 🔹 metadata_event → objeto único
-          io.sockets.sockets.forEach((s) => {
-            if (String(mappedPayload.userId) === String(s.userId)) {
-              s.emit(`${msg.channel}_update`, mappedPayload);
+            socket.emit(`${channel}_update`, userSpecificData);
+          } else {
+            // Para objetos únicos (metadata), verificamos se pertence ao usuário
+            if (String(mappedData.userId) === socketUserId) {
+              socket.emit(`${channel}_update`, mappedData);
             } else {
-              // se não pertencer ao usuário, envia objeto vazio
-              s.emit(`${msg.channel}_update`, {});
+              socket.emit(`${channel}_update`, {});
             }
-          });
-        }
+          }
+        });
+
       } catch (error) {
-        console.error("❌ Erro ao processar notificação:", error.message);
+        console.error(`❌ Erro no processamento [${msg.channel}]:`, error.message);
       }
     });
+
+    // Tratamento de erro na conexão do cliente PG
+    client.on("error", (err) => {
+      console.error("❌ Erro no cliente PostgreSQL:", err);
+      process.exit(1); // Força reinicialização para reconectar
+    });
+
   } catch (error) {
     console.error("❌ Erro ao conectar ao PostgreSQL:", error);
   }
 }
 
-// Configurar rota básica
-app.get("/", (req, res) => {
-  res.send("👌 Servidor está funcionando!");
-});
+app.get("/", (req, res) => res.send("👌 Realtime Server Online"));
 
-// Inicializar Socket.IO e PostgreSQL
 io.on("connection", (socket) => {
-  const { userId } = socket.handshake.query; // vem do frontend
-  console.log(`🔌 Cliente conectado: ${socket.id}, userId: ${userId}`);
-
-  // salva o userId na instância do socket
+  const { userId } = socket.handshake.query;
   socket.userId = userId;
+  console.log(`🔌 Cliente conectado: ${socket.id} | User: ${userId}`);
 });
 
 const PORT = process.env.PORT || 8080;
-
 server.listen(PORT, async () => {
-  console.log(`🚀 Servidor iniciado em http://localhost:${PORT}`);
+  console.log(`🚀 Servidor em http://localhost:${PORT}`);
   await initializePostgreSQLListener();
 });

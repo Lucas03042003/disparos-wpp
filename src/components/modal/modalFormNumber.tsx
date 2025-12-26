@@ -23,7 +23,7 @@ const formSchema = z.object({
   }),
 });
 
-export default function ModalForm({ state, onClose, description, qrCode, step }: 
+export default function ModalFormNumber({ state, onClose, description, qrCode, step }: 
   { state: boolean, onClose: () => void, description: string, qrCode: string, step: number }) {
 
   const [formStep, setFormStep] = useState<number>(step);
@@ -64,6 +64,10 @@ export default function ModalForm({ state, onClose, description, qrCode, step }:
     window.addEventListener("keydown", esc);
     return () => window.removeEventListener("keydown", esc);
   }, [state, onClose]);
+
+  useEffect(() => {
+    setFormStep(step);
+  }, [step]);
 
   // AO ENVIAR O FORMULÁRIO
   function onSubmit(values: z.infer<typeof formSchema>) {
