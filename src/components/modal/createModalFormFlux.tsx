@@ -34,6 +34,7 @@ interface CreateFluxModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (flux: Omit<Flux, "id" | "createdAt"> & { contacts?: Contact[] }) => void;
+  fluxId?: string;
 }
 
 type WizardStep = "nickname" | "steps" | "contacts";
@@ -42,6 +43,7 @@ export function CreateFluxModal({
   open,
   onOpenChange,
   onSubmit,
+  fluxId,
 }: CreateFluxModalProps) {
   const [wizardStep, setWizardStep] = useState<WizardStep>("nickname");
   const [nickname, setNickname] = useState("");
@@ -53,9 +55,64 @@ export function CreateFluxModal({
   const [nicknameError, setNicknameError] = useState("");
   const [intervalError, setIntervalError] = useState("");
   const [isSelectOpen, setIsSelectOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Estado para o Loading
+  const [IsLoadingData, setIsLoadingData] = useState(false);
 
   const { data: session } = authClient.useSession();
+  const isEditMode = !!fluxId;
+
+  useEffect(() => {
+    if (open && fluxId) {
+      fetchExistingFluxData();
+    }
+  }, [open, fluxId]);
+
+  const fetchExistingFluxData = async () => {
+    setIsLoadingData(true);
+    try {
+      const body = JSON.stringify({ id: fluxId });
+      const headers = { "Content-Type": "application/json" };
+
+      const [fluxRes] = await Promise.all([
+        fetch("/api/db/getFluxesById", { method: "POST", headers, body })
+      ]);
+
+      const fluxData = await fluxRes.json();
+
+      if (fluxData) {
+        setNickname(fluxData.name);
+        setIntervalValue(fluxData.intervalValue);
+        setIntervalUnit(fluxData.intervalUnit);
+      }
+
+      if (fluxData.steps) {
+        const mappedSteps: FluxStep[] = fluxData.steps.map((s: any) => ({
+          id: s.id,
+          title: s.name,
+          type: (s.stepType === "text")? "send_text":"send_media",
+          text: s.message || "",
+          mediaUrl: s.documentURL || "",
+          order: s.stepPosition,
+        })).sort((a: any, b: any) => a.order - b.order);
+        setSteps(mappedSteps);
+      }
+
+      if (fluxData.contacts) {
+        console.log(fluxData.contacts)
+
+        const mappedContacts: Contact[] = fluxData.contacts.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          phone_number: c.phoneNumber,
+        }));
+        setContacts(mappedContacts);
+      }
+
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -97,7 +154,7 @@ export function CreateFluxModal({
     setNicknameError("");
     setIntervalError("");
     setIsSelectOpen(false);
-    setIsSubmitting(false);
+    setIsLoadingData(false);
     onOpenChange(false);
   };
 
@@ -155,7 +212,7 @@ export function CreateFluxModal({
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true); // Ativa o loading
+    setIsLoadingData(true); // Ativa o loading
     try {
       const processedSteps = await Promise.all(
         steps.map(async (step) => {
@@ -163,7 +220,7 @@ export function CreateFluxModal({
             const mediaUrl = await uploadFileToR2(step.mediaFile);
             return {
               ...step,
-              mediaUrl,
+              mediaUrl: mediaUrl,
               mediaFile: undefined,
               mediaPreview: undefined,
             };
@@ -180,9 +237,10 @@ export function CreateFluxModal({
         contacts,
       };
 
-      const payload = { ...flux, userId: session?.user.id };
+      const payload = { ...flux, userId: session?.user.id, id: fluxId };
+      const endpoint = isEditMode ? "/api/db/updateFluxes" : "/api/db/newFluxes/orchestrate";
 
-      const saveResponse = await fetch("/api/db/newFluxes/orchestrate", {
+      const saveResponse = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -202,7 +260,7 @@ export function CreateFluxModal({
         alert("Erro ao salvar o fluxo. Tente novamente.");
       }
     } finally {
-      setIsSubmitting(false); // Desativa o loading independente do resultado
+      setIsLoadingData(false); // Desativa o loading independente do resultado
     }
   };
 
@@ -210,13 +268,13 @@ export function CreateFluxModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={!isSubmitting ? handleClose : undefined} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={!IsLoadingData ? handleClose : undefined} />
 
       <div className="relative z-[110] w-full max-w-lg bg-white rounded-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         
         {/* Overlay de Loading */}
         <AnimatePresence>
-          {isSubmitting && (
+          {IsLoadingData && (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -224,14 +282,14 @@ export function CreateFluxModal({
               className="absolute inset-0 z-[130] bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center"
             >
               <Loading />
-              <p className="mt-4 text-sm font-medium text-primary animate-pulse">Salvando seu fluxo...</p>
+              <p className="mt-4 text-sm font-medium text-primary animate-pulse">{isEditMode ? "Atualizando..." : "Salvando..."}</p>
             </motion.div>
           )}
         </AnimatePresence>
 
         <button 
           onClick={handleClose} 
-          disabled={isSubmitting}
+          disabled={IsLoadingData}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors z-[120] disabled:opacity-0"
         >
           <X className="h-5 w-5" />
@@ -271,8 +329,7 @@ export function CreateFluxModal({
             <div className="space-y-8">
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  Configuração Inicial
+                  <Sparkles className="h-5 w-5 text-primary" /> {isEditMode ? "Editar Fluxo" : "Novo Fluxo"}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">Defina o nome e a frequência do seu novo fluxo.</p>
               </div>
@@ -369,15 +426,15 @@ export function CreateFluxModal({
                 <ContactsUploader contacts={contacts} onContactsChange={setContacts} />
               </div>
               <div className="flex justify-between pt-6 border-t gap-3 mt-auto bg-white">
-                <Button variant="ghost" onClick={() => setWizardStep("steps")} disabled={isSubmitting} className="h-11">
+                <Button variant="ghost" onClick={() => setWizardStep("steps")} disabled={IsLoadingData} className="h-11">
                   <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
                 </Button>
                 <Button 
                   onClick={handleSubmit} 
-                  disabled={isSubmitting}
+                  disabled={IsLoadingData}
                   className="flex-1 px-8 h-11 shadow-md bg-primary hover:bg-primary/90 text-white font-bold transition-all"
                 >
-                  <Check className="mr-2 h-4 w-4" /> {isSubmitting ? "Salvando..." : "Criar Fluxo"}
+                  <Check className="mr-2 h-4 w-4" /> {IsLoadingData ? "Salvando..." : (isEditMode ? "Salvar Alterações" : "Criar Fluxo")}
                 </Button>
               </div>
             </div>

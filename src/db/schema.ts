@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { pgEnum, pgTable, text, uuid, timestamp, boolean, varchar, integer } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text, uuid, timestamp, boolean, varchar, integer, index } from "drizzle-orm/pg-core";
 
 export const statusEnum = pgEnum("status", ["ativo", "inativo"]);
 export const connectionStatusEnum = pgEnum("connection_status", ["open", "close", "connecting"]);
@@ -146,11 +146,14 @@ export const fluxesRelations = relations(fluxesTable, ({ one, many }) => ({
 export const stepsTable = pgTable("steps", {
     id: uuid("id").primaryKey().defaultRandom(),
     fluxId: uuid("flux_id").notNull().references(() => fluxesTable.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
     stepPosition: integer("step_position").notNull(),
     stepType: stepsEnum("step_type").notNull().default("text"),
     message: text("message"),
     documentURL: text("document_url")
-})
+    }, (table) => ({
+        fluxIdIdx: index("contacts_flux_id_idx").on(table.fluxId),
+    }))
 
 export const stepsRelations = relations(stepsTable, ({ one, many }) => ({
     flux: one(fluxesTable, {
@@ -199,7 +202,9 @@ export const contactsTable = pgTable("contacts", {
     numberFails: integer("number_fails").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+    }, (table) => ({
+    fluxIdIdx: index("steps_flux_id_idx").on(table.fluxId),
+    }));
 
 export const contactsRelations = relations(contactsTable, ({ one, many }) => ({
     flux: one(fluxesTable, {

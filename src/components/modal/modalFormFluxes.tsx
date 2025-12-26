@@ -16,6 +16,7 @@ export interface FluxStep {
   type: StepType;
   title: string;
   text?: string;
+  mediaUrl?: string;
   mediaFile?: File;
   mediaPreview?: string;
 }

@@ -37,6 +37,7 @@ export async function POST(request: Request) {
 
                     return {
                         fluxId: newFluxId,
+                        name: step.title,
                         stepPosition: index + 1,
                         stepType: classifiedType,
                         message: step.text || null,
