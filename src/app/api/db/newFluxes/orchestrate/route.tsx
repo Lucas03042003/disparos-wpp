@@ -7,31 +7,32 @@ export async function POST(request: Request) {
         const { nickname, steps, intervalValue, intervalUnit, contacts, userId } = await request.json();
 
         const result = await db.transaction(async (tx) => {
-            // 1. Inserir o Fluxo Principal
+            // 1. Inserir o Fluxo Principal com updatedAt now
             const insertedFluxes = await tx.insert(fluxesTable).values({
                 userId: userId,
                 name: nickname,
                 isActive: false,
                 intervalValue: Number(intervalValue),
-                intervalUnit: intervalUnit
+                intervalUnit: intervalUnit,
+                updatedAt: new Date() // Define a data de atualização na criação
             }).returning({ 
                 insertedId: fluxesTable.id 
             });
 
             const newFluxId = insertedFluxes[0].insertedId;
 
-            // 2. Inserir os Passos (Steps)
+            // 2. Inserir os Passos (Steps) com classificação de mídia
             if (steps && steps.length > 0) {
                 const stepsData = steps.map((step: any, index: number) => {
-                    // Pegamos a URL do payload (mediaUrl)
                     const rawUrl = step.mediaUrl || "";
                     const urlLower = rawUrl.toLowerCase();
                     
                     let classifiedType: "text" | "image" | "video" = "text";
                     
-                    if (urlLower.endsWith(".png") || urlLower.endsWith(".jpeg") || urlLower.endsWith(".jpg")) {
+                    // Lógica de classificação baseada na extensão
+                    if (urlLower.match(/\.(png|jpeg|jpg|webp|gif)$/)) {
                         classifiedType = "image";
-                    } else if (urlLower.endsWith(".mp4")) {
+                    } else if (urlLower.match(/\.(mp4|webm|ogg|mov)$/)) {
                         classifiedType = "video";
                     }
 
@@ -48,13 +49,13 @@ export async function POST(request: Request) {
                 await tx.insert(stepsTable).values(stepsData);
             }
 
-            // 3. Inserir os Contatos
+            // 3. Inserir os Contatos com updatedAt now
             if (contacts && contacts.length > 0) {
                 const contactsData = contacts.map((contact: any) => ({
                     fluxId: newFluxId,
                     name: contact.name,
-                    // No schema é phoneNumber (camelCase), no payload pode ser phone_number
                     phoneNumber: contact.phone_number || contact.phoneNumber || "",
+                    updatedAt: new Date() // Define a data de atualização para cada contato
                 }));
                 await tx.insert(contactsTable).values(contactsData);
             }
